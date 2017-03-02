@@ -37,6 +37,7 @@ import org.infinispan.commands.write.DataWriteCommand;
 import org.infinispan.commands.write.EvictCommand;
 import org.infinispan.commands.write.InvalidateCommand;
 import org.infinispan.commands.write.InvalidateL1Command;
+import org.infinispan.commands.write.MergeCommand;
 import org.infinispan.commands.write.PutKeyValueCommand;
 import org.infinispan.commands.write.PutMapCommand;
 import org.infinispan.commands.write.RemoveCommand;
@@ -302,8 +303,7 @@ public class EntryWrappingInterceptor extends DDAsyncInterceptor {
    @Override
    public final Object visitPutKeyValueCommand(InvocationContext ctx, PutKeyValueCommand command)
          throws Throwable {
-      wrapEntryIfNeeded(ctx, command);
-      return setSkipRemoteGetsAndInvokeNextForDataCommand(ctx, command, command.getMetadata());
+      return visitDataWriteCommand(ctx, command);
    }
 
    private void wrapEntryIfNeeded(InvocationContext ctx, AbstractDataWriteCommand command) throws Throwable {
@@ -364,20 +364,24 @@ public class EntryWrappingInterceptor extends DDAsyncInterceptor {
    }
 
    @Override
+   public Object visitMergeCommand(InvocationContext ctx, MergeCommand command) throws Throwable {
+      return visitDataWriteCommand(ctx, command);
+   }
+
+   @Override
    public final Object visitRemoveCommand(InvocationContext ctx, RemoveCommand command) throws Throwable {
-      wrapEntryIfNeeded(ctx, command);
-      return setSkipRemoteGetsAndInvokeNextForDataCommand(ctx, command, null);
+      return visitDataWriteCommand(ctx, command);
    }
 
    @Override
    public final Object visitReplaceCommand(InvocationContext ctx, ReplaceCommand command)
          throws Throwable {
-      if (command.hasAnyFlag(FlagBitSets.COMMAND_RETRY)) {
-         removeFromContextOnRetry(ctx, command.getKey());
-      }
-      // When retrying, we might still need to perform the command even if the previous value was removed
-      entryFactory.wrapEntryForWriting(ctx, command.getKey(), ignoreOwnership(command) || canRead(command.getKey()));
-      return setSkipRemoteGetsAndInvokeNextForDataCommand(ctx, command, command.getMetadata());
+      return visitDataWriteCommand(ctx, command);
+   }
+
+   private Object visitDataWriteCommand(InvocationContext ctx, AbstractDataWriteCommand command) throws Throwable {
+      wrapEntryIfNeeded(ctx, command);
+      return setSkipRemoteGetsAndInvokeNextForDataCommand(ctx, command, null);
    }
 
    @Override
@@ -467,22 +471,19 @@ public class EntryWrappingInterceptor extends DDAsyncInterceptor {
    @Override
    public Object visitWriteOnlyKeyCommand(InvocationContext ctx, WriteOnlyKeyCommand command)
          throws Throwable {
-      wrapEntryIfNeeded(ctx, command);
-      return setSkipRemoteGetsAndInvokeNextForDataCommand(ctx, command, null);
+      return visitDataWriteCommand(ctx, command);
    }
 
    @Override
    public Object visitReadWriteKeyValueCommand(InvocationContext ctx, ReadWriteKeyValueCommand command)
          throws Throwable {
-      wrapEntryIfNeeded(ctx, command);
-      return setSkipRemoteGetsAndInvokeNextForDataCommand(ctx, command, null);
+      return visitDataWriteCommand(ctx, command);
    }
 
    @Override
    public Object visitReadWriteKeyCommand(InvocationContext ctx, ReadWriteKeyCommand command)
          throws Throwable {
-      wrapEntryIfNeeded(ctx, command);
-      return setSkipRemoteGetsAndInvokeNextForDataCommand(ctx, command, null);
+      return visitDataWriteCommand(ctx, command);
    }
 
    @Override
@@ -515,8 +516,7 @@ public class EntryWrappingInterceptor extends DDAsyncInterceptor {
    @Override
    public Object visitWriteOnlyKeyValueCommand(InvocationContext ctx, WriteOnlyKeyValueCommand command)
          throws Throwable {
-      wrapEntryIfNeeded(ctx, command);
-      return setSkipRemoteGetsAndInvokeNextForDataCommand(ctx, command, null);
+      return visitDataWriteCommand(ctx, command);
    }
 
    @Override
@@ -729,6 +729,11 @@ public class EntryWrappingInterceptor extends DDAsyncInterceptor {
       public Object visitApplyDeltaCommand(InvocationContext ctx, ApplyDeltaCommand command) throws Throwable {
          entryFactory.wrapEntryForDelta(ctx, command.getKey(), command.getDelta(), ignoreOwnership(command) || canRead(command.getKey()));
          return invokeNext(ctx, command);
+      }
+
+      @Override
+      public Object visitMergeCommand(InvocationContext ctx, MergeCommand command) throws Throwable {
+         return handleWriteCommand(ctx, command);
       }
 
       @Override

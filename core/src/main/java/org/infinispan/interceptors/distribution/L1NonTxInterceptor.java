@@ -20,6 +20,7 @@ import org.infinispan.commands.read.GetCacheEntryCommand;
 import org.infinispan.commands.read.GetKeyValueCommand;
 import org.infinispan.commands.write.DataWriteCommand;
 import org.infinispan.commands.write.InvalidateL1Command;
+import org.infinispan.commands.write.MergeCommand;
 import org.infinispan.commands.write.PutKeyValueCommand;
 import org.infinispan.commands.write.PutMapCommand;
 import org.infinispan.commands.write.RemoveCommand;
@@ -235,6 +236,11 @@ public class L1NonTxInterceptor extends BaseRpcInterceptor {
          processInvalidationResult(putMapCommand, invalidationFuture);
          return MultiSubCommandInvoker.invokeEach(rCtx, subCommands, this, rv);
       });
+   }
+
+   @Override
+   public Object visitMergeCommand(InvocationContext ctx, MergeCommand command) throws Throwable {
+      return handleDataWriteCommand(ctx, command, false);
    }
 
    @Override

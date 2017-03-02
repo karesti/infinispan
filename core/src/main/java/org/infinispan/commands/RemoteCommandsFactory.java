@@ -44,6 +44,7 @@ import org.infinispan.commands.write.BackupWriteRcpCommand;
 import org.infinispan.commands.write.ClearCommand;
 import org.infinispan.commands.write.InvalidateCommand;
 import org.infinispan.commands.write.InvalidateL1Command;
+import org.infinispan.commands.write.MergeCommand;
 import org.infinispan.commands.write.PutKeyValueCommand;
 import org.infinispan.commands.write.PutMapCommand;
 import org.infinispan.commands.write.RemoveCommand;
@@ -122,6 +123,9 @@ public class RemoteCommandsFactory {
                break;
             case ReplaceCommand.COMMAND_ID:
                command = new ReplaceCommand();
+               break;
+            case MergeCommand.COMMAND_ID:
+               command = new MergeCommand();
                break;
             case GetKeyValueCommand.COMMAND_ID:
                command = new GetKeyValueCommand();

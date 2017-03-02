@@ -13,6 +13,7 @@ import org.infinispan.commands.write.ClearCommand;
 import org.infinispan.commands.write.EvictCommand;
 import org.infinispan.commands.write.InvalidateCommand;
 import org.infinispan.commands.write.InvalidateL1Command;
+import org.infinispan.commands.write.MergeCommand;
 import org.infinispan.commands.write.PutKeyValueCommand;
 import org.infinispan.commands.write.PutMapCommand;
 import org.infinispan.commands.write.RemoveCommand;
@@ -70,6 +71,11 @@ public class AffectedKeysVisitor extends AbstractVisitor {
 
    @Override
    public Object visitReplaceCommand(InvocationContext ctx, ReplaceCommand command) {
+      return command.getAffectedKeys();
+   }
+
+   @Override
+   public Object visitMergeCommand(InvocationContext ctx, MergeCommand command) {
       return command.getAffectedKeys();
    }
 

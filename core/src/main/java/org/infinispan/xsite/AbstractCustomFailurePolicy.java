@@ -1,6 +1,7 @@
 package org.infinispan.xsite;
 
 import java.util.Map;
+import java.util.function.BiFunction;
 
 import javax.transaction.Transaction;
 
@@ -31,6 +32,10 @@ public abstract class AbstractCustomFailurePolicy<K,V> implements CustomFailureP
 
    @Override
    public void handleReplaceFailure(String site, K key, V oldValue, V newValue) {
+   }
+
+   @Override
+   public void handleMergeFailure(String site, K key, V value, BiFunction<? super V, ? super V, ? extends V> remappingFunction) {
    }
 
    @Override

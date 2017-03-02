@@ -67,6 +67,7 @@ import org.infinispan.commands.write.DataWriteCommand;
 import org.infinispan.commands.write.EvictCommand;
 import org.infinispan.commands.write.ExceptionAckCommand;
 import org.infinispan.commands.write.InvalidateCommand;
+import org.infinispan.commands.write.MergeCommand;
 import org.infinispan.commands.write.PrimaryAckCommand;
 import org.infinispan.commands.write.PrimaryMultiKeyAckCommand;
 import org.infinispan.commands.write.PutKeyValueCommand;
@@ -166,6 +167,11 @@ public class ControlledCommandFactory implements CommandsFactory {
    @Override
    public RemoveCommand buildRemoveCommand(Object key, Object value, long flagsBitSet) {
       return actual.buildRemoveCommand(key, value, flagsBitSet);
+   }
+
+   @Override
+   public MergeCommand buildMergeCommand(Object key, Object value, BiFunction remappingFunction, Metadata metadata, long flagsBitSet) {
+      return actual.buildMergeCommand(key, value, remappingFunction, metadata, flagsBitSet);
    }
 
    @Override

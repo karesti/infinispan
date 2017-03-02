@@ -18,12 +18,15 @@ import java.util.EnumSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Properties;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.TimeUnit;
+import java.util.function.BiConsumer;
+import java.util.function.BiFunction;
 
 import javax.transaction.InvalidTransactionException;
 import javax.transaction.SystemException;
@@ -50,6 +53,7 @@ import org.infinispan.commands.remote.GetKeysInGroupCommand;
 import org.infinispan.commands.write.ApplyDeltaCommand;
 import org.infinispan.commands.write.ClearCommand;
 import org.infinispan.commands.write.EvictCommand;
+import org.infinispan.commands.write.MergeCommand;
 import org.infinispan.commands.write.PutKeyValueCommand;
 import org.infinispan.commands.write.PutMapCommand;
 import org.infinispan.commands.write.RemoveCommand;
@@ -239,10 +243,28 @@ public class CacheImpl<K, V> implements AdvancedCache<K, V> {
       }
    }
 
+   private void assertFunctionNotNull(Object function) {
+      if (function == null) {
+         throw new NullPointerException("Null functions are not supported!");
+      }
+   }
+
    // CacheSupport does not extend AdvancedCache, so it cannot really call up
    // to the cache methods that take Metadata parameter. Since CacheSupport
    // methods are declared final, the easiest is for CacheImpl to stop
    // extending CacheSupport and implement the base methods directly.
+
+   @Override
+   public V merge(K key, V value, BiFunction<? super V, ? super V, ? extends V> remappingFunction) {
+      assertKeyValueNotNull(key, value);
+      assertFunctionNotNull(remappingFunction);
+      InvocationContext ctx = getInvocationContextWithImplicitTransaction(false, 1);
+      long flags = addUnsafeFlags(EnumUtil.EMPTY_BIT_SET);
+      Metadata merged = applyDefaultMetadata(defaultMetadata);
+      MergeCommand command = commandsFactory.buildMergeCommand(key, value, (BiFunction) remappingFunction, merged, flags);
+      ctx.setLockOwner(command.getKeyLockOwner());
+      return (V) executeCommandAndCommitIfNeeded(ctx, command);
+   }
 
    @Override
    public final V put(K key, V value) {

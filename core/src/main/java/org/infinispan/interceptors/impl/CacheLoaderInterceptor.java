@@ -33,6 +33,7 @@ import org.infinispan.commands.read.KeySetCommand;
 import org.infinispan.commands.remote.GetKeysInGroupCommand;
 import org.infinispan.commands.write.ApplyDeltaCommand;
 import org.infinispan.commands.write.InvalidateCommand;
+import org.infinispan.commands.write.MergeCommand;
 import org.infinispan.commands.write.PutKeyValueCommand;
 import org.infinispan.commands.write.RemoveCommand;
 import org.infinispan.commands.write.ReplaceCommand;
@@ -127,6 +128,11 @@ public class CacheLoaderInterceptor<K, V> extends JmxStatsCommandInterceptor {
    @Override
    public Object visitApplyDeltaCommand(InvocationContext ctx, ApplyDeltaCommand command)
          throws Throwable {
+      return visitDataCommand(ctx, command);
+   }
+
+   @Override
+   public Object visitMergeCommand(InvocationContext ctx, MergeCommand command) throws Throwable {
       return visitDataCommand(ctx, command);
    }
 

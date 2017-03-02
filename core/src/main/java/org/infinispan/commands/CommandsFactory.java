@@ -58,6 +58,7 @@ import org.infinispan.commands.write.DataWriteCommand;
 import org.infinispan.commands.write.EvictCommand;
 import org.infinispan.commands.write.ExceptionAckCommand;
 import org.infinispan.commands.write.InvalidateCommand;
+import org.infinispan.commands.write.MergeCommand;
 import org.infinispan.commands.write.PrimaryAckCommand;
 import org.infinispan.commands.write.PrimaryMultiKeyAckCommand;
 import org.infinispan.commands.write.PutKeyValueCommand;
@@ -117,6 +118,17 @@ public interface CommandsFactory {
     * @return a RemoveCommand
     */
    RemoveCommand buildRemoveCommand(Object key, Object value, long flagsBitSet);
+
+   /**
+    * Builds a MergeCommand
+    * @param key key to remove
+    * @param value value to be merged with
+    * @param remappingFunction BiFunction to be applied between old and new value
+    * @param metadata metadata of entry
+    * @param flagsBitSet Command flags provided by cache
+    * @return a MergeCommand
+    */
+   MergeCommand buildMergeCommand(Object key, Object value, BiFunction remappingFunction, Metadata metadata, long flagsBitSet);
 
    /**
     * Builds an InvalidateCommand

@@ -11,6 +11,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.function.BiConsumer;
 
 import org.infinispan.commons.util.ObjectDuplicator;
 import org.infinispan.configuration.cache.ConfigurationBuilder;
@@ -25,7 +26,7 @@ import org.testng.annotations.Test;
  * @author Mircea Markus
  * @since 5.1
  */
-@Test (groups = "functional", testName = "api.APINonTxTest")
+@Test(groups = "functional", testName = "api.APINonTxTest")
 public class APINonTxTest extends SingleCacheManagerTest {
 
    @Override
@@ -70,7 +71,7 @@ public class APINonTxTest extends SingleCacheManagerTest {
       assert cache.values().contains(value);
    }
 
-      public void testStopClearsData() throws Exception {
+   public void testStopClearsData() throws Exception {
       String key = "key", value = "value";
       int size = 0;
       cache.put(key, value);
@@ -505,6 +506,35 @@ public class APINonTxTest extends SingleCacheManagerTest {
       assert cache.replace("A", "X").equals("C");
       assert cache.replace("X", "A") == null;
       assert !cache.containsKey("X");
+
+      assert cache.getOrDefault("Not there", "K").equals("K");
+
+      List<String> collect = new ArrayList<>();
+      cache.forEach((k, v) -> collect.add("Key=" + k + ", Value=" + v));
+      assert collect.size() == 1;
+      assert collect.get(0).equals("Key=A, Value=X");
+   }
+
+   public void testDefaultMethod() {
+      cache.put("A", "B");
+
+      assertEquals("K", cache.getOrDefault("Not there", "K"));
+   }
+
+   public void testMerge() {
+      cache.put("A", "B");
+
+      // replace
+      cache.merge("A", "C", (oldValue, newValue) -> "" + oldValue + newValue);
+      assertEquals("BC", cache.get("A"));
+
+      // remove if null value after remapping
+      cache.merge("A", "C", (oldValue, newValue) -> null);
+      assertEquals(null, cache.get("A"));
+
+      // put if absent
+      cache.merge("F", "42", (oldValue, newValue) -> "" + oldValue + newValue);
+      assertEquals("42", cache.get("F"));
    }
 
    @Test(expectedExceptions = NullPointerException.class)

@@ -9,6 +9,7 @@ import java.util.concurrent.Future;
 import org.infinispan.commands.tx.CommitCommand;
 import org.infinispan.commands.tx.PrepareCommand;
 import org.infinispan.commands.write.DataWriteCommand;
+import org.infinispan.commands.write.MergeCommand;
 import org.infinispan.commands.write.PutKeyValueCommand;
 import org.infinispan.commands.write.PutMapCommand;
 import org.infinispan.commands.write.RemoveCommand;
@@ -107,6 +108,11 @@ public class L1LastChanceInterceptor extends BaseRpcInterceptor {
             }
          }
       });
+   }
+
+   @Override
+   public Object visitMergeCommand(InvocationContext ctx, MergeCommand command) throws Throwable {
+      return visitDataWriteCommand(ctx, command, false);
    }
 
    private boolean shouldUpdateOnWriteCommand(WriteCommand command) {

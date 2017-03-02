@@ -22,6 +22,7 @@ import org.infinispan.commands.write.ClearCommand;
 import org.infinispan.commands.write.EvictCommand;
 import org.infinispan.commands.write.InvalidateCommand;
 import org.infinispan.commands.write.InvalidateL1Command;
+import org.infinispan.commands.write.MergeCommand;
 import org.infinispan.commands.write.PutKeyValueCommand;
 import org.infinispan.commands.write.PutMapCommand;
 import org.infinispan.commands.write.RemoveCommand;
@@ -130,6 +131,12 @@ public class StateTransferInterceptor extends BaseStateTransferInterceptor {
 
    @Override
    public Object visitReplaceCommand(InvocationContext ctx, ReplaceCommand command)
+         throws Throwable {
+      return handleWriteCommand(ctx, command);
+   }
+
+   @Override
+   public Object visitMergeCommand(InvocationContext ctx, MergeCommand command)
          throws Throwable {
       return handleWriteCommand(ctx, command);
    }

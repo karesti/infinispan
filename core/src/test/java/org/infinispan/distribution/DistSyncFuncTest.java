@@ -1,17 +1,23 @@
 package org.infinispan.distribution;
 
+import static org.testng.AssertJUnit.assertEquals;
+
+import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 import java.util.Random;
 import java.util.Set;
+import java.util.function.BiFunction;
 
 import org.infinispan.Cache;
 import org.infinispan.commands.write.ClearCommand;
+import org.infinispan.commands.write.MergeCommand;
 import org.infinispan.commands.write.PutKeyValueCommand;
 import org.infinispan.commands.write.RemoveCommand;
 import org.infinispan.commands.write.ReplaceCommand;
+import org.infinispan.commons.marshall.MarshallableFunctions;
 import org.infinispan.commons.util.ObjectDuplicator;
 import org.infinispan.context.Flag;
 import org.infinispan.remoting.transport.Address;
@@ -135,6 +141,31 @@ public class DistSyncFuncTest extends BaseDistFunctionalTest<Object, String> {
       if (testRetVals) assert "value".equals(retval);
 
       assertRemovedOnAllCaches("k1");
+   }
+
+   public void testMergeFromNonOwner() {
+      BiFunction function = (BiFunction & Serializable) (v1, v2) -> "merged_" + v1 + "_" + v2;
+
+      // merge function applied
+      initAndTest();
+      Object retval = getFirstNonOwner("k1").merge("k1", "value2", function);
+      asyncWait("k1", MergeCommand.class, getSecondNonOwner("k1"));
+      if (testRetVals) assert "merged_value_value2".equals(retval);
+      assertOnAllCachesAndOwnership("k1", "merged_value_value2");
+
+      // remove when null
+      initAndTest();
+      retval = getFirstNonOwner("k1").merge("k1", "valueRem", (v1, v2) -> null);
+      asyncWait("k1", MergeCommand.class, getSecondNonOwner("k1"));
+      if (testRetVals) assert retval == null;
+      assertRemovedOnAllCaches("k1");
+
+      // put if absent
+      initAndTest();
+      retval = getFirstNonOwner("notThere").merge("notThere", "value2", (v1, v2) -> "merged_" + v1 + "_" + v2);
+      asyncWait("notThere", MergeCommand.class, getSecondNonOwner("notThere"));
+      if (testRetVals) assert "value2".equals(retval);
+      assertOnAllCachesAndOwnership("notThere", "value2");
    }
 
    public void testConditionalRemoveFromNonOwner() {

@@ -36,6 +36,11 @@ public abstract class BaseNonTotalOrderClusteredExtendedStatisticsTest extends B
    }
 
    @Override
+   protected void awaitMerge(int cacheIndex, Object key) throws InterruptedException {
+      awaitSingleKeyOperation(Operation.MERGE, cacheIndex, key);
+   }
+
+   @Override
    protected void awaitPutMap(int cacheIndex, Collection<Object> keys) throws InterruptedException {
       Cache<?, ?> executedOn = cache(cacheIndex);
       Collection<Address> owners = getOwners(executedOn, keys);

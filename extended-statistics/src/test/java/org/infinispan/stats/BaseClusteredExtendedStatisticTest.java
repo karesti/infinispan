@@ -27,6 +27,7 @@ import org.infinispan.commands.tx.VersionedPrepareCommand;
 import org.infinispan.commands.tx.totalorder.TotalOrderNonVersionedPrepareCommand;
 import org.infinispan.commands.tx.totalorder.TotalOrderVersionedPrepareCommand;
 import org.infinispan.commands.write.ClearCommand;
+import org.infinispan.commands.write.MergeCommand;
 import org.infinispan.commands.write.PutKeyValueCommand;
 import org.infinispan.commands.write.PutMapCommand;
 import org.infinispan.commands.write.RemoveCommand;
@@ -325,6 +326,8 @@ public abstract class BaseClusteredExtendedStatisticTest extends MultipleCacheMa
 
    protected abstract void awaitRemove(int cacheIndex, Object key) throws InterruptedException;
 
+   protected abstract void awaitMerge(int cacheIndex, Object key) throws InterruptedException;
+
    private void awaitClear(int cacheIndex) throws InterruptedException {
       Set<Address> all = new HashSet<>(cache(cacheIndex).getAdvancedCache().getRpcManager().getMembers());
       all.remove(address(cacheIndex));
@@ -417,7 +420,7 @@ public abstract class BaseClusteredExtendedStatisticTest extends MultipleCacheMa
    }
 
    protected enum Operation {
-      PUT, REMOVE, REPLACE, CLEAR, PUT_MAP
+      PUT, REMOVE, REPLACE, CLEAR, PUT_MAP, MERGE
    }
 
    private static class ControlledPerCacheInboundInvocationHandler implements PerCacheInboundInvocationHandler {
@@ -462,6 +465,9 @@ public abstract class BaseClusteredExtendedStatisticTest extends MultipleCacheMa
                   break;
                case RemoveCommand.COMMAND_ID:
                   operationQueue.add(Operation.REMOVE);
+                  break;
+               case MergeCommand.COMMAND_ID:
+                  operationQueue.add(Operation.MERGE);
                   break;
                case ClearCommand.COMMAND_ID:
                   operationQueue.add(Operation.CLEAR);

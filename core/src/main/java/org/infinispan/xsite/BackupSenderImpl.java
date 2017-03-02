@@ -22,6 +22,7 @@ import org.infinispan.commands.tx.CommitCommand;
 import org.infinispan.commands.tx.PrepareCommand;
 import org.infinispan.commands.tx.RollbackCommand;
 import org.infinispan.commands.write.ClearCommand;
+import org.infinispan.commands.write.MergeCommand;
 import org.infinispan.commands.write.PutKeyValueCommand;
 import org.infinispan.commands.write.PutMapCommand;
 import org.infinispan.commands.write.RemoveCommand;
@@ -316,7 +317,11 @@ public class BackupSenderImpl implements BackupSender {
          } else if (writeCommand instanceof RemoveCommand && writeCommand.isConditional()) {
             filteredCommand = commandsFactory.buildRemoveCommand(((RemoveCommand) writeCommand).getKey(), null,
                                                                  writeCommand.getFlagsBitSet());
+         } else if (writeCommand instanceof MergeCommand) {
+            filteredCommand = commandsFactory.buildRemoveCommand(((MergeCommand) writeCommand).getKey(), null,
+                  writeCommand.getFlagsBitSet());
          }
+
          filtered.add(filteredCommand);
       }
       return filtered;
@@ -362,6 +367,12 @@ public class BackupSenderImpl implements BackupSender {
       @Override
       public Object visitReplaceCommand(InvocationContext ctx, ReplaceCommand command) throws Throwable {
          failurePolicy.handleReplaceFailure(site, command.getKey(), command.getOldValue(), command.getNewValue());
+         return null;
+      }
+
+      @Override
+      public Object visitMergeCommand(InvocationContext ctx, MergeCommand command) throws Throwable {
+         failurePolicy.handleMergeFailure(site, command.getKey(), command.getValue(), command.getRemappingFunction());
          return null;
       }
 

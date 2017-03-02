@@ -66,6 +66,7 @@ import org.infinispan.commands.write.EvictCommand;
 import org.infinispan.commands.write.ExceptionAckCommand;
 import org.infinispan.commands.write.InvalidateCommand;
 import org.infinispan.commands.write.InvalidateL1Command;
+import org.infinispan.commands.write.MergeCommand;
 import org.infinispan.commands.write.PrimaryAckCommand;
 import org.infinispan.commands.write.PrimaryMultiKeyAckCommand;
 import org.infinispan.commands.write.PutKeyValueCommand;
@@ -236,13 +237,19 @@ public class CommandsFactoryImpl implements CommandsFactory {
    public PutKeyValueCommand buildPutKeyValueCommand(Object key, Object value, Metadata metadata, long flagsBitSet) {
       boolean reallyTransactional = transactional && !EnumUtil.containsAny(flagsBitSet, FlagBitSets.PUT_FOR_EXTERNAL_READ);
       return new PutKeyValueCommand(key, value, false, notifier, metadata, flagsBitSet,
-                                    generateUUID(reallyTransactional));
+            generateUUID(reallyTransactional));
    }
 
    @Override
    public RemoveCommand buildRemoveCommand(Object key, Object value, long flagsBitSet) {
       return new RemoveCommand(key, value, notifier, flagsBitSet,
-                               generateUUID(transactional));
+            generateUUID(transactional));
+   }
+
+   @Override
+   public MergeCommand buildMergeCommand(Object key, Object value, BiFunction remappingFunction, Metadata metadata, long flagsBitSet) {
+      boolean reallyTransactional = transactional && !EnumUtil.containsAny(flagsBitSet, FlagBitSets.PUT_FOR_EXTERNAL_READ);
+      return new MergeCommand(key, value, remappingFunction, flagsBitSet, generateUUID(reallyTransactional), metadata, notifier);
    }
 
    @Override
@@ -268,13 +275,13 @@ public class CommandsFactoryImpl implements CommandsFactory {
    @Override
    public RemoveExpiredCommand buildRemoveExpiredCommand(Object key, Object value, Long lifespan) {
       return new RemoveExpiredCommand(key, value, lifespan, notifier,
-                                      generateUUID(transactional));
+            generateUUID(transactional));
    }
 
    @Override
    public ReplaceCommand buildReplaceCommand(Object key, Object oldValue, Object newValue, Metadata metadata, long flagsBitSet) {
       return new ReplaceCommand(key, oldValue, newValue, notifier, metadata, flagsBitSet,
-                                generateUUID(transactional));
+            generateUUID(transactional));
    }
 
    @Override
@@ -398,7 +405,7 @@ public class CommandsFactoryImpl implements CommandsFactory {
             pc.init(interceptorChain, icf, txTable);
             pc.initialize(notifier, recoveryManager);
             if (pc.getModifications() != null)
-               for (ReplicableCommand nested : pc.getModifications())  {
+               for (ReplicableCommand nested : pc.getModifications()) {
                   initializeReplicableCommand(nested, false);
                }
             pc.markTransactionAsRemote(isRemote);
@@ -428,7 +435,7 @@ public class CommandsFactoryImpl implements CommandsFactory {
          case ClusteredGetCommand.COMMAND_ID:
             ClusteredGetCommand clusteredGetCommand = (ClusteredGetCommand) c;
             clusteredGetCommand.initialize(icf, this, entryFactory,
-                                           interceptorChain
+                  interceptorChain
             );
             break;
          case LockControlCommand.COMMAND_ID:
@@ -466,29 +473,29 @@ public class CommandsFactoryImpl implements CommandsFactory {
             ftx.init(txTable, lockManager, recoveryManager, stateTransferManager);
             break;
          case DistributedExecuteCommand.COMMAND_ID:
-            DistributedExecuteCommand dec = (DistributedExecuteCommand)c;
+            DistributedExecuteCommand dec = (DistributedExecuteCommand) c;
             dec.init(cache);
             break;
          case GetInDoubtTxInfoCommand.COMMAND_ID:
-            GetInDoubtTxInfoCommand gidTxInfoCommand = (GetInDoubtTxInfoCommand)c;
+            GetInDoubtTxInfoCommand gidTxInfoCommand = (GetInDoubtTxInfoCommand) c;
             gidTxInfoCommand.init(recoveryManager);
             break;
          case CompleteTransactionCommand.COMMAND_ID:
-            CompleteTransactionCommand ccc = (CompleteTransactionCommand)c;
+            CompleteTransactionCommand ccc = (CompleteTransactionCommand) c;
             ccc.init(recoveryManager);
             break;
          case ApplyDeltaCommand.COMMAND_ID:
             break;
          case CreateCacheCommand.COMMAND_ID:
-            CreateCacheCommand createCacheCommand = (CreateCacheCommand)c;
+            CreateCacheCommand createCacheCommand = (CreateCacheCommand) c;
             createCacheCommand.init(cache.getCacheManager());
             break;
          case XSiteAdminCommand.COMMAND_ID:
-            XSiteAdminCommand xSiteAdminCommand = (XSiteAdminCommand)c;
+            XSiteAdminCommand xSiteAdminCommand = (XSiteAdminCommand) c;
             xSiteAdminCommand.init(backupSender);
             break;
          case CancelCommand.COMMAND_ID:
-            CancelCommand cancelCommand = (CancelCommand)c;
+            CancelCommand cancelCommand = (CancelCommand) c;
             cancelCommand.init(cancellationService);
             break;
          case XSiteStateTransferControlCommand.COMMAND_ID:
@@ -665,21 +672,21 @@ public class CommandsFactoryImpl implements CommandsFactory {
 
    @Override
    public <K> StreamRequestCommand<K> buildStreamRequestCommand(Object id, boolean parallelStream,
-           StreamRequestCommand.Type type, Set<Integer> segments, Set<K> keys, Set<K> excludedKeys,
-           boolean includeLoader, Object terminalOperation) {
+                                                                StreamRequestCommand.Type type, Set<Integer> segments, Set<K> keys, Set<K> excludedKeys,
+                                                                boolean includeLoader, Object terminalOperation) {
       return new StreamRequestCommand<>(cacheName, cache.getCacheManager().getAddress(), id, parallelStream, type,
-              segments, keys, excludedKeys, includeLoader, terminalOperation);
+            segments, keys, excludedKeys, includeLoader, terminalOperation);
    }
 
    @Override
    public <R> StreamResponseCommand<R> buildStreamResponseCommand(Object identifier, boolean complete,
-           Set<Integer> lostSegments, R response) {
+                                                                  Set<Integer> lostSegments, R response) {
       if (lostSegments.isEmpty()) {
          return new StreamResponseCommand<>(cacheName, cache.getCacheManager().getAddress(), identifier, complete,
-                 response);
+               response);
       } else {
          return new StreamSegmentResponseCommand<>(cacheName, cache.getCacheManager().getAddress(), identifier,
-                 complete, response, lostSegments);
+               complete, response, lostSegments);
       }
    }
 

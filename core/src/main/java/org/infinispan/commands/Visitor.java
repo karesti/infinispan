@@ -27,6 +27,7 @@ import org.infinispan.commands.write.ClearCommand;
 import org.infinispan.commands.write.EvictCommand;
 import org.infinispan.commands.write.InvalidateCommand;
 import org.infinispan.commands.write.InvalidateL1Command;
+import org.infinispan.commands.write.MergeCommand;
 import org.infinispan.commands.write.PutKeyValueCommand;
 import org.infinispan.commands.write.PutMapCommand;
 import org.infinispan.commands.write.RemoveCommand;
@@ -56,6 +57,8 @@ public interface Visitor {
    Object visitEvictCommand(InvocationContext ctx, EvictCommand command) throws Throwable;
 
    Object visitApplyDeltaCommand(InvocationContext ctx, ApplyDeltaCommand command) throws Throwable;
+
+   Object visitMergeCommand(InvocationContext ctx, MergeCommand command) throws Throwable;
 
    // read commands
 

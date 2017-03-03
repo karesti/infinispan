@@ -30,6 +30,7 @@ import org.infinispan.commands.write.ClearCommand;
 import org.infinispan.commands.write.EvictCommand;
 import org.infinispan.commands.write.InvalidateCommand;
 import org.infinispan.commands.write.InvalidateL1Command;
+import org.infinispan.commands.write.MergeCommand;
 import org.infinispan.commands.write.PutKeyValueCommand;
 import org.infinispan.commands.write.PutMapCommand;
 import org.infinispan.commands.write.RemoveCommand;
@@ -127,7 +128,7 @@ public class ReplicableCommandExternalizer extends AbstractExternalizer<Replicab
             InvalidateCommand.class, InvalidateL1Command.class,
             PutKeyValueCommand.class,
             PutMapCommand.class, RemoveCommand.class, RemoveExpiredCommand.class,
-            ReplaceCommand.class, GetKeysInGroupCommand.class,
+            ReplaceCommand.class, MergeCommand.class, GetKeysInGroupCommand.class,
             ReadOnlyKeyCommand.class, ReadOnlyManyCommand.class,
             ReadWriteKeyCommand.class, ReadWriteKeyValueCommand.class,
             WriteOnlyKeyCommand.class, WriteOnlyKeyValueCommand.class,

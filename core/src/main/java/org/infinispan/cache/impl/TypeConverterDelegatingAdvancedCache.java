@@ -700,12 +700,11 @@ public class TypeConverterDelegatingAdvancedCache<K, V> extends AbstractDelegati
 
    @Override
    public V merge(K key, V value, BiFunction<? super V, ? super V, ? extends V> remappingFunction) {
-//      V returned = super.merge(boxKey(key), value, (oldV, newV) -> {
-//         // oldV will be boxed, however we left newV alone
-//         V oldVUnboxed = unboxValue(oldV);
-//         return remappingFunction.apply(oldVUnboxed, newV);
-//      });
-      V returned = super.merge(boxKey(key), value, remappingFunction);
+      V returned = super.merge(boxKey(key), value, (oldV, newV) -> {
+         // oldV will be boxed, however we left newV alone
+         V oldVUnboxed = unboxValue(oldV);
+         return remappingFunction.apply(oldVUnboxed, newV);
+      });
       return unboxValue(returned);
    }
 

@@ -5,6 +5,7 @@ import java.util.concurrent.Future;
 import org.infinispan.commands.FlagAffectedCommand;
 import org.infinispan.commands.tx.CommitCommand;
 import org.infinispan.commands.tx.PrepareCommand;
+import org.infinispan.commands.write.MergeCommand;
 import org.infinispan.commands.write.PutKeyValueCommand;
 import org.infinispan.commands.write.PutMapCommand;
 import org.infinispan.commands.write.RemoveCommand;
@@ -33,6 +34,11 @@ public class L1TxInterceptor extends L1NonTxInterceptor {
 
    @Override
    public Object visitReplaceCommand(InvocationContext ctx, ReplaceCommand command) throws Throwable {
+      return performCommandWithL1WriteIfAble(ctx, command, false, true, true);
+   }
+
+   @Override
+   public Object visitMergeCommand(InvocationContext ctx, MergeCommand command) throws Throwable {
       return performCommandWithL1WriteIfAble(ctx, command, false, true, true);
    }
 

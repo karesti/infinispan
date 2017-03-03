@@ -3,6 +3,7 @@ package org.infinispan.interceptors.impl;
 import java.util.Map;
 
 import org.infinispan.commands.FlagAffectedCommand;
+import org.infinispan.commands.write.MergeCommand;
 import org.infinispan.commands.write.PutKeyValueCommand;
 import org.infinispan.commands.write.PutMapCommand;
 import org.infinispan.commands.write.RemoveCommand;
@@ -69,6 +70,15 @@ public class IsMarshallableInterceptor extends DDAsyncInterceptor {
    public Object visitReplaceCommand(InvocationContext ctx, ReplaceCommand command) throws Throwable {
       if (isUsingAsyncStore(ctx, command)) {
          checkMarshallable(command.getNewValue());
+      }
+      return invokeNext(ctx, command);
+   }
+
+   @Override
+   public Object visitMergeCommand(InvocationContext ctx, MergeCommand command) throws Throwable {
+      if (isUsingAsyncStore(ctx, command)) {
+         checkMarshallable(command.getValue());
+         checkMarshallable(command.getRemappingFunction());
       }
       return invokeNext(ctx, command);
    }

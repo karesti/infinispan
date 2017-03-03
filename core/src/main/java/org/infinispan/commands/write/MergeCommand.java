@@ -11,6 +11,7 @@ import java.util.function.BiFunction;
 import org.infinispan.commands.CommandInvocationId;
 import org.infinispan.commands.MetadataAwareCommand;
 import org.infinispan.commands.Visitor;
+import org.infinispan.commons.marshall.MarshallUtil;
 import org.infinispan.container.entries.MVCCEntry;
 import org.infinispan.context.InvocationContext;
 import org.infinispan.context.impl.FlagBitSets;
@@ -19,10 +20,10 @@ import org.infinispan.metadata.Metadatas;
 import org.infinispan.notifications.cachelistener.CacheNotifier;
 
 public class MergeCommand extends AbstractDataWriteCommand implements MetadataAwareCommand {
-   public static final int COMMAND_ID = 66;
+   public static final int COMMAND_ID = 67;
 
    private Object value;
-   private BiFunction<Object, Object, Object> remappingFunction;
+   private BiFunction remappingFunction;
    private Metadata metadata;
    private CacheNotifier<Object, Object> notifier;
 
@@ -30,7 +31,7 @@ public class MergeCommand extends AbstractDataWriteCommand implements MetadataAw
    }
 
    public MergeCommand(Object key, Object value,
-                       BiFunction<Object, Object, Object> remappingFunction,
+                       BiFunction remappingFunction,
                        long flagsBitSet,
                        CommandInvocationId commandInvocationId,
                        Metadata metadata,
@@ -40,6 +41,11 @@ public class MergeCommand extends AbstractDataWriteCommand implements MetadataAw
       this.value = value;
       this.remappingFunction = remappingFunction;
       this.metadata = metadata;
+      this.notifier = notifier;
+   }
+
+   public void init(CacheNotifier notifier) {
+      //noinspection unchecked
       this.notifier = notifier;
    }
 
@@ -120,21 +126,21 @@ public class MergeCommand extends AbstractDataWriteCommand implements MetadataAw
 
    @Override
    public void writeTo(ObjectOutput output) throws IOException {
-      CommandInvocationId.writeTo(output, commandInvocationId);
       output.writeObject(key);
       output.writeObject(value);
-      output.writeObject(metadata);
-      output.writeLong(FlagBitSets.copyWithoutRemotableFlags(getFlagsBitSet()));
       output.writeObject(remappingFunction);
+      output.writeObject(metadata);
+      CommandInvocationId.writeTo(output, commandInvocationId);
+      output.writeLong(FlagBitSets.copyWithoutRemotableFlags(getFlagsBitSet()));
    }
 
    @Override
    public void readFrom(ObjectInput input) throws IOException, ClassNotFoundException {
-      commandInvocationId = CommandInvocationId.readFrom(input);
       key = input.readObject();
       value = input.readObject();
-      metadata = (Metadata) input.readObject();
       remappingFunction = (BiFunction) input.readObject();
+      metadata = (Metadata) input.readObject();
+      commandInvocationId = CommandInvocationId.readFrom(input);
       setFlagsBitSet(input.readLong());
    }
 
@@ -158,12 +164,16 @@ public class MergeCommand extends AbstractDataWriteCommand implements MetadataAw
       this.metadata = metadata;
    }
 
-   public BiFunction<Object, Object, Object> getRemappingFunction() {
+   public BiFunction getRemappingFunction() {
       return remappingFunction;
    }
 
    public Object getValue() {
       return value;
+   }
+
+   public void setValue(Object value) {
+      this.value = value;
    }
 
    @Override

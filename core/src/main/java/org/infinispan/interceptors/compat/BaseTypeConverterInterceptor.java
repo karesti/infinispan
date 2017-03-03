@@ -20,6 +20,7 @@ import org.infinispan.commands.read.GetAllCommand;
 import org.infinispan.commands.read.GetCacheEntryCommand;
 import org.infinispan.commands.read.GetKeyValueCommand;
 import org.infinispan.commands.read.KeySetCommand;
+import org.infinispan.commands.write.MergeCommand;
 import org.infinispan.commands.write.PutKeyValueCommand;
 import org.infinispan.commands.write.PutMapCommand;
 import org.infinispan.commands.write.RemoveCommand;
@@ -212,6 +213,26 @@ public abstract class BaseTypeConverterInterceptor<K, V> extends DDAsyncIntercep
    public Object visitRemoveCommand(InvocationContext ctx, RemoveCommand command) throws Throwable {
       if (!ctx.isOriginLocal()) {
          return super.visitRemoveCommand(ctx, command);
+      }
+      Object key = command.getKey();
+      TypeConverter<Object, Object, Object, Object> converter = determineTypeConverter(command);
+      Object conditionalValue = command.getValue();
+      command.setKey(converter.boxKey(key));
+      command.setValue(converter.boxValue(conditionalValue));
+      return invokeNextThenApply(ctx, command, (rCtx, rCommand, rv) -> {
+         // Return of conditional remove is not the value type, but boolean, so
+         // apply an exception that applies to all servers, regardless of what's
+         // stored in the value side
+         if (conditionalValue != null && rv instanceof Boolean) return rv;
+
+         return ctx.isOriginLocal() ? converter.unboxValue(rv) : rv;
+      });
+   }
+
+   @Override
+   public Object visitMergeCommand(InvocationContext ctx, MergeCommand command) throws Throwable {
+      if (!ctx.isOriginLocal()) {
+         return super.visitMergeCommand(ctx, command);
       }
       Object key = command.getKey();
       TypeConverter<Object, Object, Object, Object> converter = determineTypeConverter(command);

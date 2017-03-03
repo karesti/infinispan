@@ -1,6 +1,9 @@
 package org.infinispan.scripting.impl;
 
+import java.util.function.BiFunction;
+
 import org.infinispan.commands.write.ClearCommand;
+import org.infinispan.commands.write.MergeCommand;
 import org.infinispan.commands.write.PutKeyValueCommand;
 import org.infinispan.commands.write.RemoveCommand;
 import org.infinispan.commands.write.ReplaceCommand;
@@ -49,6 +52,15 @@ public final class ScriptingInterceptor extends BaseCustomAsyncInterceptor {
    public Object visitReplaceCommand(InvocationContext ctx, ReplaceCommand command) throws Throwable {
       String name = (String) command.getKey();
       String script = (String) command.getNewValue();
+      command.setMetadata(scriptingManager.compileScript(name, script));
+      return invokeNext(ctx, command);
+   }
+
+   @Override
+   public Object visitMergeCommand(InvocationContext ctx, MergeCommand command) throws Throwable {
+      String name = (String) command.getKey();
+      String script = (String) command.getValue();
+      BiFunction function = (BiFunction) command.getRemappingFunction();
       command.setMetadata(scriptingManager.compileScript(name, script));
       return invokeNext(ctx, command);
    }

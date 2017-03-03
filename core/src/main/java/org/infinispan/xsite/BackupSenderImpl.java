@@ -318,8 +318,12 @@ public class BackupSenderImpl implements BackupSender {
             filteredCommand = commandsFactory.buildRemoveCommand(((RemoveCommand) writeCommand).getKey(), null,
                                                                  writeCommand.getFlagsBitSet());
          } else if (writeCommand instanceof MergeCommand) {
-            filteredCommand = commandsFactory.buildRemoveCommand(((MergeCommand) writeCommand).getKey(), null,
-                  writeCommand.getFlagsBitSet());
+            MergeCommand mergeCommand = (MergeCommand) writeCommand;
+            filteredCommand = commandsFactory.buildMergeCommand(mergeCommand.getKey(),
+                                                                mergeCommand.getValue(),
+                                                                mergeCommand.getRemappingFunction(),
+                                                                mergeCommand.getMetadata(),
+                                                                mergeCommand.getFlagsBitSet());
          }
 
          filtered.add(filteredCommand);

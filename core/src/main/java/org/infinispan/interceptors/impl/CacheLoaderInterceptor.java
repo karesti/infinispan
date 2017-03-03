@@ -132,11 +132,6 @@ public class CacheLoaderInterceptor<K, V> extends JmxStatsCommandInterceptor {
    }
 
    @Override
-   public Object visitMergeCommand(InvocationContext ctx, MergeCommand command) throws Throwable {
-      return visitDataCommand(ctx, command);
-   }
-
-   @Override
    public Object visitPutKeyValueCommand(InvocationContext ctx, PutKeyValueCommand command)
          throws Throwable {
       return visitDataCommand(ctx, command);
@@ -184,6 +179,12 @@ public class CacheLoaderInterceptor<K, V> extends JmxStatsCommandInterceptor {
 
    @Override
    public Object visitReplaceCommand(InvocationContext ctx, ReplaceCommand command)
+         throws Throwable {
+      return visitDataCommand(ctx, command);
+   }
+
+   @Override
+   public Object visitMergeCommand(InvocationContext ctx, MergeCommand command)
          throws Throwable {
       return visitDataCommand(ctx, command);
    }

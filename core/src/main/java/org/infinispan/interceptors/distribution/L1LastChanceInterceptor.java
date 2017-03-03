@@ -67,6 +67,11 @@ public class L1LastChanceInterceptor extends BaseRpcInterceptor {
    }
 
    @Override
+   public Object visitMergeCommand(InvocationContext ctx, MergeCommand command) throws Throwable {
+      return visitDataWriteCommand(ctx, command, false);
+   }
+
+   @Override
    public Object visitRemoveCommand(InvocationContext ctx, RemoveCommand command) throws Throwable {
       return visitDataWriteCommand(ctx, command, false);
    }
@@ -108,11 +113,6 @@ public class L1LastChanceInterceptor extends BaseRpcInterceptor {
             }
          }
       });
-   }
-
-   @Override
-   public Object visitMergeCommand(InvocationContext ctx, MergeCommand command) throws Throwable {
-      return visitDataWriteCommand(ctx, command, false);
    }
 
    private boolean shouldUpdateOnWriteCommand(WriteCommand command) {

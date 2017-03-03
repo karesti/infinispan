@@ -28,9 +28,11 @@ import org.infinispan.commands.functional.WriteOnlyManyCommand;
 import org.infinispan.commands.functional.WriteOnlyManyEntriesCommand;
 import org.infinispan.commands.tx.CommitCommand;
 import org.infinispan.commands.tx.PrepareCommand;
+import org.infinispan.commands.write.AbstractDataWriteCommand;
 import org.infinispan.commands.write.ApplyDeltaCommand;
 import org.infinispan.commands.write.ClearCommand;
 import org.infinispan.commands.write.DataWriteCommand;
+import org.infinispan.commands.write.MergeCommand;
 import org.infinispan.commands.write.PutKeyValueCommand;
 import org.infinispan.commands.write.PutMapCommand;
 import org.infinispan.commands.write.RemoveCommand;
@@ -178,34 +180,32 @@ public class CacheWriterInterceptor extends JmxStatsCommandInterceptor {
 
    @Override
    public Object visitPutKeyValueCommand(InvocationContext ctx, PutKeyValueCommand command) throws Throwable {
-      return invokeNextThenAccept(ctx, command, (rCtx, rCommand, rv) -> {
-         PutKeyValueCommand putKeyValueCommand = (PutKeyValueCommand) rCommand;
-         if (!isStoreEnabled(putKeyValueCommand) || rCtx.isInTxScope() || !putKeyValueCommand.isSuccessful())
-            return;
-         if (!isProperWriter(rCtx, putKeyValueCommand, putKeyValueCommand.getKey()))
-            return;
-
-         Object key = putKeyValueCommand.getKey();
-         storeEntry(rCtx, key, putKeyValueCommand);
-         if (getStatisticsEnabled())
-            cacheStores.incrementAndGet();
-      });
+      return invokeNextThenAccept(ctx, command, (rCtx, rCommand, rv) ->
+            handleDataWriteCommandDefault(rCtx, (PutKeyValueCommand) rCommand));
    }
 
    @Override
    public Object visitReplaceCommand(InvocationContext ctx, ReplaceCommand command) throws Throwable {
-      return invokeNextThenAccept(ctx, command, (rCtx, rCommand, rv) -> {
-         ReplaceCommand replaceCommand = (ReplaceCommand) rCommand;
-         if (!isStoreEnabled(replaceCommand) || rCtx.isInTxScope() || !replaceCommand.isSuccessful())
-            return;
-         if (!isProperWriter(rCtx, replaceCommand, replaceCommand.getKey()))
-            return;
+      return invokeNextThenAccept(ctx, command, (rCtx, rCommand, rv) ->
+            handleDataWriteCommandDefault(rCtx, (ReplaceCommand) rCommand));
+   }
 
-         Object key = replaceCommand.getKey();
-         storeEntry(rCtx, key, replaceCommand);
-         if (getStatisticsEnabled())
-            cacheStores.incrementAndGet();
-      });
+   @Override
+   public Object visitMergeCommand(InvocationContext ctx, MergeCommand command) throws Throwable {
+      return invokeNextThenAccept(ctx, command, (rCtx, rCommand, rv) ->
+            handleDataWriteCommandDefault(rCtx, (MergeCommand) rCommand));
+   }
+
+   private void handleDataWriteCommandDefault(InvocationContext rCtx, AbstractDataWriteCommand dataWriteCommand) {
+      if (!isStoreEnabled(dataWriteCommand) || rCtx.isInTxScope() || !dataWriteCommand.isSuccessful())
+         return;
+      if (!isProperWriter(rCtx, dataWriteCommand, dataWriteCommand.getKey()))
+         return;
+
+      Object key = dataWriteCommand.getKey();
+      storeEntry(rCtx, key, dataWriteCommand);
+      if (getStatisticsEnabled())
+         cacheStores.incrementAndGet();
    }
 
    @Override
@@ -410,6 +410,11 @@ public class CacheWriterInterceptor extends JmxStatsCommandInterceptor {
 
       @Override
       public Object visitReplaceCommand(InvocationContext ctx, ReplaceCommand command) throws Throwable {
+         return visitSingleStore(ctx, command, command.getKey());
+      }
+
+      @Override
+      public Object visitMergeCommand(InvocationContext ctx, MergeCommand command) throws Throwable {
          return visitSingleStore(ctx, command, command.getKey());
       }
 

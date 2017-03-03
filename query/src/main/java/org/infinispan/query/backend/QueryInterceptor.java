@@ -20,6 +20,7 @@ import org.infinispan.Cache;
 import org.infinispan.commands.FlagAffectedCommand;
 import org.infinispan.commands.tx.PrepareCommand;
 import org.infinispan.commands.write.ClearCommand;
+import org.infinispan.commands.write.MergeCommand;
 import org.infinispan.commands.write.PutKeyValueCommand;
 import org.infinispan.commands.write.PutMapCommand;
 import org.infinispan.commands.write.RemoveCommand;
@@ -166,6 +167,11 @@ public final class QueryInterceptor extends DDAsyncInterceptor {
    @Override
    public Object visitReplaceCommand(InvocationContext ctx, ReplaceCommand command) throws Throwable {
       return invokeNextThenAccept(ctx, command, (rCtx, rCommand, rv) -> processReplaceCommand(((ReplaceCommand) rCommand), rCtx, rv, null));
+   }
+
+   @Override
+   public Object visitMergeCommand(InvocationContext ctx, MergeCommand command) throws Throwable {
+      return invokeNextThenAccept(ctx, command, (rCtx, rCommand, rv) -> pro(((ReplaceCommand) rCommand), rCtx, rv, null));
    }
 
    @Override

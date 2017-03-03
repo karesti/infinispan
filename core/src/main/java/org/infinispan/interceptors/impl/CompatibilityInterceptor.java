@@ -1,6 +1,7 @@
 package org.infinispan.interceptors.impl;
 
 import org.infinispan.commands.MetadataAwareCommand;
+import org.infinispan.commands.write.MergeCommand;
 import org.infinispan.commands.write.ReplaceCommand;
 import org.infinispan.container.versioning.VersionGenerator;
 import org.infinispan.context.InvocationContext;
@@ -26,6 +27,12 @@ public class CompatibilityInterceptor extends DDAsyncInterceptor {
    public Object visitReplaceCommand(InvocationContext ctx, ReplaceCommand command) throws Throwable {
       addVersionIfNeeded(command);
       return super.visitReplaceCommand(ctx, command);
+   }
+
+   @Override
+   public Object visitMergeCommand(InvocationContext ctx, MergeCommand command) throws Throwable {
+      addVersionIfNeeded(command);
+      return super.visitMergeCommand(ctx, command);
    }
 
    protected void addVersionIfNeeded(MetadataAwareCommand cmd) {

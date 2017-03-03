@@ -1,6 +1,7 @@
 package org.infinispan.context;
 
 import org.infinispan.commands.read.GetKeyValueCommand;
+import org.infinispan.commands.write.MergeCommand;
 import org.infinispan.commands.write.PutKeyValueCommand;
 import org.infinispan.commands.write.RemoveCommand;
 import org.infinispan.commands.write.ReplaceCommand;
@@ -82,6 +83,7 @@ public class SingleKeyNonTxInvocationContextTest extends MultipleCacheManagersTe
       private boolean removeOkay;
       private boolean getOkay;
       private boolean replaceOkay;
+      private boolean mergeOkay;
 
 
       @Override
@@ -106,6 +108,12 @@ public class SingleKeyNonTxInvocationContextTest extends MultipleCacheManagersTe
       public Object visitReplaceCommand(InvocationContext ctx, ReplaceCommand command) throws Throwable {
          if (isRightType(ctx)) replaceOkay = true;
          return super.visitReplaceCommand(ctx, command);
+      }
+
+      @Override
+      public Object visitMergeCommand(InvocationContext ctx, MergeCommand command) throws Throwable {
+         if (isRightType(ctx)) mergeOkay = true;
+         return super.visitMergeCommand(ctx, command);
       }
 
       private boolean isRightType(InvocationContext ctx) {

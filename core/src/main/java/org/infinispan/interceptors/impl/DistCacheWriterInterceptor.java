@@ -6,11 +6,16 @@ import static org.infinispan.persistence.manager.PersistenceManager.AccessMode.P
 
 import java.util.Map;
 
+import org.infinispan.commands.DataCommand;
 import org.infinispan.commands.FlagAffectedCommand;
+import org.infinispan.commands.VisitableCommand;
+import org.infinispan.commands.write.AbstractDataWriteCommand;
+import org.infinispan.commands.write.MergeCommand;
 import org.infinispan.commands.write.PutKeyValueCommand;
 import org.infinispan.commands.write.PutMapCommand;
 import org.infinispan.commands.write.RemoveCommand;
 import org.infinispan.commands.write.ReplaceCommand;
+import org.infinispan.commands.write.WriteCommand;
 import org.infinispan.context.InvocationContext;
 import org.infinispan.context.impl.FlagBitSets;
 import org.infinispan.distribution.DistributionManager;
@@ -73,19 +78,8 @@ public class DistCacheWriterInterceptor extends CacheWriterInterceptor {
 
    @Override
    public Object visitPutKeyValueCommand(InvocationContext ctx, PutKeyValueCommand command) throws Throwable {
-      return invokeNextThenApply(ctx, command, (rCtx, rCommand, rv) -> {
-         PutKeyValueCommand putKeyValueCommand = (PutKeyValueCommand) rCommand;
-         Object key = putKeyValueCommand.getKey();
-         if (!isStoreEnabled(putKeyValueCommand) || rCtx.isInTxScope() || !putKeyValueCommand.isSuccessful())
-            return rv;
-         if (!isProperWriter(rCtx, putKeyValueCommand, putKeyValueCommand.getKey()))
-            return rv;
-
-         storeEntry(rCtx, key, putKeyValueCommand);
-         if (getStatisticsEnabled())
-            cacheStores.incrementAndGet();
-         return rv;
-      });
+      return invokeNextThenApply(ctx, command, (InvocationContext rCtx, VisitableCommand rCommand, Object rv) ->
+            handleDataWriteDefault(rCtx, rv, (PutKeyValueCommand) rCommand));
    }
 
    @Override
@@ -137,20 +131,28 @@ public class DistCacheWriterInterceptor extends CacheWriterInterceptor {
    @Override
    public Object visitReplaceCommand(InvocationContext ctx, ReplaceCommand command)
          throws Throwable {
-      return invokeNextThenApply(ctx, command, (rCtx, rCommand, rv) -> {
-         ReplaceCommand replaceCommand = (ReplaceCommand) rCommand;
-         Object key = replaceCommand.getKey();
-         if (!isStoreEnabled(replaceCommand) || rCtx.isInTxScope() || !replaceCommand.isSuccessful())
-            return rv;
-         if (!isProperWriter(rCtx, replaceCommand, replaceCommand.getKey()))
-            return rv;
+      return invokeNextThenApply(ctx, command, (InvocationContext rCtx, VisitableCommand rCommand, Object rv) ->
+            handleDataWriteDefault(rCtx, rv, (ReplaceCommand) rCommand));
+   }
 
-         storeEntry(rCtx, key, replaceCommand);
-         if (getStatisticsEnabled())
-            cacheStores.incrementAndGet();
+   @Override
+   public Object visitMergeCommand(InvocationContext ctx, MergeCommand command)
+         throws Throwable {
+      return invokeNextThenApply(ctx, command, (InvocationContext rCtx, VisitableCommand rCommand, Object rv) ->
+            handleDataWriteDefault(rCtx, rv, (MergeCommand) rCommand));
+   }
 
+   private Object handleDataWriteDefault(InvocationContext rCtx, Object rv, AbstractDataWriteCommand dataWriteCommand) {
+      Object key = dataWriteCommand.getKey();
+      if (!isStoreEnabled(dataWriteCommand) || rCtx.isInTxScope() || !dataWriteCommand.isSuccessful())
          return rv;
-      });
+      if (!isProperWriter(rCtx, dataWriteCommand, dataWriteCommand.getKey()))
+         return rv;
+
+      storeEntry(rCtx, key, dataWriteCommand);
+      if (getStatisticsEnabled())
+         cacheStores.incrementAndGet();
+      return rv;
    }
 
    @Override

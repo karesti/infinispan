@@ -216,6 +216,11 @@ public class L1NonTxInterceptor extends BaseRpcInterceptor {
    }
 
    @Override
+   public Object visitMergeCommand(InvocationContext ctx, MergeCommand command) throws Throwable {
+      return handleDataWriteCommand(ctx, command, true);
+   }
+
+   @Override
    public Object visitPutMapCommand(InvocationContext ctx, PutMapCommand command) throws Throwable {
       Set<Object> keys = command.getMap().keySet();
       Set<Object> toInvalidate = new HashSet<>(keys.size());
@@ -236,11 +241,6 @@ public class L1NonTxInterceptor extends BaseRpcInterceptor {
          processInvalidationResult(putMapCommand, invalidationFuture);
          return MultiSubCommandInvoker.invokeEach(rCtx, subCommands, this, rv);
       });
-   }
-
-   @Override
-   public Object visitMergeCommand(InvocationContext ctx, MergeCommand command) throws Throwable {
-      return handleDataWriteCommand(ctx, command, false);
    }
 
    @Override

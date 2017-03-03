@@ -4,6 +4,7 @@ import java.io.IOException;
 import java.io.ObjectInput;
 import java.io.ObjectOutput;
 import java.util.concurrent.CompletableFuture;
+import java.util.function.BiFunction;
 
 import org.infinispan.commands.CommandInvocationId;
 import org.infinispan.commands.TopologyAffectedCommand;
@@ -45,6 +46,7 @@ public class BackupWriteRcpCommand extends BaseRpcCommand implements TopologyAff
    private InvocationContextFactory invocationContextFactory;
    private AsyncInterceptorChain interceptorChain;
    private CacheNotifier cacheNotifier;
+   private BiFunction remappingFunction;
 
    //for org.infinispan.commands.CommandIdUniquenessTest
    public BackupWriteRcpCommand() {
@@ -86,6 +88,15 @@ public class BackupWriteRcpCommand extends BaseRpcCommand implements TopologyAff
       this.metadata = metadata;
    }
 
+   public void setMerge(CommandInvocationId id, Object key, Object value, BiFunction remappingFunction, Metadata metadata, long flags,
+                        int topologyId) {
+      this.operation = Operation.MERGE;
+      setCommonAttributes(id, key, flags, topologyId);
+      this.value = value;
+      this.metadata = metadata;
+      this.remappingFunction = remappingFunction;
+   }
+
    public void init(InvocationContextFactory invocationContextFactory, AsyncInterceptorChain interceptorChain,
          CacheNotifier cacheNotifier) {
       this.invocationContextFactory = invocationContextFactory;
@@ -109,6 +120,9 @@ public class BackupWriteRcpCommand extends BaseRpcCommand implements TopologyAff
             break;
          case REPLACE:
             command = new ReplaceCommand(key, null, value, cacheNotifier, metadata, flags, commandInvocationId);
+            break;
+         case MERGE:
+            command = new MergeCommand(key, value, remappingFunction, flags, commandInvocationId, metadata, cacheNotifier);
             break;
          default:
             throw new IllegalStateException();
@@ -158,6 +172,11 @@ public class BackupWriteRcpCommand extends BaseRpcCommand implements TopologyAff
          case REMOVE_EXPIRED:
             output.writeObject(value);
             break;
+         case MERGE:
+            output.writeObject(value);
+            output.writeObject(metadata);
+            output.writeObject(remappingFunction);
+            break;
          default:
       }
       output.writeLong(FlagBitSets.copyWithoutRemotableFlags(flags));
@@ -177,6 +196,11 @@ public class BackupWriteRcpCommand extends BaseRpcCommand implements TopologyAff
             break;
          case REMOVE_EXPIRED:
             value = input.readObject();
+            break;
+         case MERGE:
+            value = input.readObject();
+            metadata = (Metadata) input.readObject();
+            remappingFunction = (BiFunction)input.readObject();
             break;
          default:
       }
@@ -227,6 +251,7 @@ public class BackupWriteRcpCommand extends BaseRpcCommand implements TopologyAff
       WRITE,
       REMOVE,
       REMOVE_EXPIRED,
-      REPLACE
+      REPLACE,
+      MERGE
    }
 }

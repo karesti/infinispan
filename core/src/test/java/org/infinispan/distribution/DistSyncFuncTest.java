@@ -154,15 +154,15 @@ public class DistSyncFuncTest extends BaseDistFunctionalTest<Object, String> {
       assertOnAllCachesAndOwnership("k1", "merged_value_value2");
 
       // remove when null
-      initAndTest();
-      retval = getFirstNonOwner("k1").merge("k1", "valueRem", (v1, v2) -> null);
+      BiFunction functionRem = (BiFunction & Serializable) (v1, v2) -> null;
+      retval = getFirstNonOwner("k1").merge("k1", "valueRem", functionRem);
       asyncWait("k1", MergeCommand.class, getSecondNonOwner("k1"));
       if (testRetVals) assert retval == null;
       assertRemovedOnAllCaches("k1");
 
       // put if absent
-      initAndTest();
-      retval = getFirstNonOwner("notThere").merge("notThere", "value2", (v1, v2) -> "merged_" + v1 + "_" + v2);
+      BiFunction functionPut = (BiFunction & Serializable) (v1, v2) -> "merged_" + v1 + "_" + v2;
+      retval = getFirstNonOwner("notThere").merge("notThere", "value2", functionPut);
       asyncWait("notThere", MergeCommand.class, getSecondNonOwner("notThere"));
       if (testRetVals) assert "value2".equals(retval);
       assertOnAllCachesAndOwnership("notThere", "value2");

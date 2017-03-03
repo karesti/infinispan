@@ -11,7 +11,6 @@ import java.util.function.BiFunction;
 import org.infinispan.commands.CommandInvocationId;
 import org.infinispan.commands.MetadataAwareCommand;
 import org.infinispan.commands.Visitor;
-import org.infinispan.commons.marshall.MarshallUtil;
 import org.infinispan.container.entries.MVCCEntry;
 import org.infinispan.context.InvocationContext;
 import org.infinispan.context.impl.FlagBitSets;
@@ -72,6 +71,17 @@ public class MergeCommand extends AbstractDataWriteCommand implements MetadataAw
    @Override
    public void updateStatusFromRemoteResponse(Object remoteResponse) {
       // implementation not needed (yet)
+   }
+
+   @Override
+   public void initBackupWriteRcpCommand(BackupWriteRcpCommand command) {
+      command.setMerge(commandInvocationId, key, value, remappingFunction, metadata, getFlagsBitSet(), getTopologyId());
+   }
+
+   @Override
+   public void initPrimaryAck(PrimaryAckCommand command, Object localReturnValue) {
+      command.initCommandInvocationIdAndTopologyId(commandInvocationId.getId(), getTopologyId());
+      command.initWithReturnValue(true, localReturnValue);
    }
 
    @Override

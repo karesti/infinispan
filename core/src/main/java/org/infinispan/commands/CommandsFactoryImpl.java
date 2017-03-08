@@ -84,6 +84,7 @@ import org.infinispan.commons.marshall.LambdaExternalizer;
 import org.infinispan.commons.marshall.SerializeFunctionWith;
 import org.infinispan.commons.marshall.StreamingMarshaller;
 import org.infinispan.commons.util.EnumUtil;
+import org.infinispan.compat.TypeConverter;
 import org.infinispan.configuration.cache.Configuration;
 import org.infinispan.container.DataContainer;
 import org.infinispan.container.InternalEntryFactory;
@@ -91,6 +92,7 @@ import org.infinispan.context.InvocationContextFactory;
 import org.infinispan.context.impl.FlagBitSets;
 import org.infinispan.distribution.DistributionManager;
 import org.infinispan.distribution.group.GroupManager;
+import org.infinispan.factories.ComponentRegistry;
 import org.infinispan.factories.KnownComponentNames;
 import org.infinispan.factories.annotations.ComponentName;
 import org.infinispan.factories.annotations.Inject;
@@ -177,6 +179,7 @@ public class CommandsFactoryImpl implements CommandsFactory {
    @SuppressWarnings("deprecation")
    private ClusteringDependentLogic clusteringDependentLogic;
    private CommandAckCollector commandAckCollector;
+   private ComponentRegistry componentRegistry;
 
    private Map<Byte, ModuleCommandInitializer> moduleCommandInitializers;
    private StreamingMarshaller marshaller;
@@ -194,7 +197,7 @@ public class CommandsFactoryImpl implements CommandsFactory {
                                  GroupManager groupManager, PartitionHandlingManager partitionHandlingManager,
                                  LocalStreamManager localStreamManager, ClusterStreamManager clusterStreamManager,
                                  @SuppressWarnings("deprecation") ClusteringDependentLogic clusteringDependentLogic, StreamingMarshaller marshaller,
-                                 CommandAckCollector commandAckCollector) {
+                                 CommandAckCollector commandAckCollector, ComponentRegistry componentRegistry) {
       this.dataContainer = container;
       this.notifier = notifier;
       this.cache = cache;
@@ -221,6 +224,7 @@ public class CommandsFactoryImpl implements CommandsFactory {
       this.clusteringDependentLogic = clusteringDependentLogic;
       this.marshaller = marshaller;
       this.commandAckCollector = commandAckCollector;
+      this.componentRegistry = componentRegistry;
    }
 
    @Start(priority = 1)
@@ -249,7 +253,7 @@ public class CommandsFactoryImpl implements CommandsFactory {
    @Override
    public MergeCommand buildMergeCommand(Object key, Object value, BiFunction remappingFunction, Metadata metadata, long flagsBitSet) {
       boolean reallyTransactional = transactional && !EnumUtil.containsAny(flagsBitSet, FlagBitSets.PUT_FOR_EXTERNAL_READ);
-      return new MergeCommand(key, value, remappingFunction, flagsBitSet, generateUUID(reallyTransactional), metadata, notifier);
+      return new MergeCommand(key, value, remappingFunction, flagsBitSet, generateUUID(reallyTransactional), metadata, notifier, componentRegistry);
    }
 
    @Override
@@ -377,7 +381,7 @@ public class CommandsFactoryImpl implements CommandsFactory {
             ((ReplaceCommand) c).init(notifier);
             break;
          case MergeCommand.COMMAND_ID:
-            ((MergeCommand) c).init(notifier);
+            ((MergeCommand) c).init(notifier, componentRegistry);
             break;
          case PutMapCommand.COMMAND_ID:
             ((PutMapCommand) c).init(notifier);
@@ -539,7 +543,7 @@ public class CommandsFactoryImpl implements CommandsFactory {
             break;
          case BackupWriteRcpCommand.COMMAND_ID:
             BackupWriteRcpCommand bwc = (BackupWriteRcpCommand) c;
-            bwc.init(icf, interceptorChain, notifier);
+            bwc.init(icf, interceptorChain, notifier, componentRegistry);
             break;
          case PrimaryAckCommand.COMMAND_ID:
             ((PrimaryAckCommand) c).setCommandAckCollector(commandAckCollector);

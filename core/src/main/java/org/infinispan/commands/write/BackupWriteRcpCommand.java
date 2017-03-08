@@ -15,6 +15,7 @@ import org.infinispan.context.Flag;
 import org.infinispan.context.InvocationContext;
 import org.infinispan.context.InvocationContextFactory;
 import org.infinispan.context.impl.FlagBitSets;
+import org.infinispan.factories.ComponentRegistry;
 import org.infinispan.interceptors.AsyncInterceptorChain;
 import org.infinispan.metadata.Metadata;
 import org.infinispan.notifications.cachelistener.CacheNotifier;
@@ -46,6 +47,7 @@ public class BackupWriteRcpCommand extends BaseRpcCommand implements TopologyAff
    private InvocationContextFactory invocationContextFactory;
    private AsyncInterceptorChain interceptorChain;
    private CacheNotifier cacheNotifier;
+   private ComponentRegistry componentRegistry;
    private BiFunction remappingFunction;
 
    //for org.infinispan.commands.CommandIdUniquenessTest
@@ -98,10 +100,11 @@ public class BackupWriteRcpCommand extends BaseRpcCommand implements TopologyAff
    }
 
    public void init(InvocationContextFactory invocationContextFactory, AsyncInterceptorChain interceptorChain,
-         CacheNotifier cacheNotifier) {
+         CacheNotifier cacheNotifier, ComponentRegistry componentRegistry) {
       this.invocationContextFactory = invocationContextFactory;
       this.interceptorChain = interceptorChain;
       this.cacheNotifier = cacheNotifier;
+      this.componentRegistry = componentRegistry;
    }
 
    @Override
@@ -122,7 +125,7 @@ public class BackupWriteRcpCommand extends BaseRpcCommand implements TopologyAff
             command = new ReplaceCommand(key, null, value, cacheNotifier, metadata, flags, commandInvocationId);
             break;
          case MERGE:
-            command = new MergeCommand(key, value, remappingFunction, flags, commandInvocationId, metadata, cacheNotifier);
+            command = new MergeCommand(key, value, remappingFunction, flags, commandInvocationId, metadata, cacheNotifier, componentRegistry);
             break;
          default:
             throw new IllegalStateException();

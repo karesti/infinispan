@@ -14,6 +14,7 @@ import org.infinispan.commands.Visitor;
 import org.infinispan.container.entries.MVCCEntry;
 import org.infinispan.context.InvocationContext;
 import org.infinispan.context.impl.FlagBitSets;
+import org.infinispan.factories.ComponentRegistry;
 import org.infinispan.metadata.Metadata;
 import org.infinispan.metadata.Metadatas;
 import org.infinispan.notifications.cachelistener.CacheNotifier;
@@ -25,6 +26,7 @@ public class MergeCommand extends AbstractDataWriteCommand implements MetadataAw
    private BiFunction remappingFunction;
    private Metadata metadata;
    private CacheNotifier<Object, Object> notifier;
+   private ComponentRegistry componentRegistry;
 
    public MergeCommand(){
    }
@@ -34,18 +36,23 @@ public class MergeCommand extends AbstractDataWriteCommand implements MetadataAw
                        long flagsBitSet,
                        CommandInvocationId commandInvocationId,
                        Metadata metadata,
-                       CacheNotifier notifier) {
+                       CacheNotifier notifier,
+                       ComponentRegistry componentRegistry) {
 
       super(key, flagsBitSet, commandInvocationId);
       this.value = value;
       this.remappingFunction = remappingFunction;
       this.metadata = metadata;
       this.notifier = notifier;
+      this.componentRegistry = componentRegistry;
+      componentRegistry.wireDependencies(remappingFunction);
    }
 
-   public void init(CacheNotifier notifier) {
+   public void init(CacheNotifier notifier, ComponentRegistry componentRegistry) {
       //noinspection unchecked
       this.notifier = notifier;
+      this.componentRegistry = componentRegistry;
+      componentRegistry.wireDependencies(remappingFunction);
    }
 
    @Override

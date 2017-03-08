@@ -16,6 +16,7 @@ import org.infinispan.commons.marshall.MarshallableFunctionExternalizers;
 import org.infinispan.commons.marshall.WrappedByteArray;
 import org.infinispan.commons.marshall.exts.EquivalenceExternalizer;
 import org.infinispan.commons.util.Immutables;
+import org.infinispan.compat.BiFunctionMapper;
 import org.infinispan.compat.ConverterKeyMapper;
 import org.infinispan.compat.ConverterValueMapper;
 import org.infinispan.compat.ConverterEntryMapper;
@@ -132,6 +133,7 @@ final class InternalExternalizers {
       addInternalExternalizer(new AtomicHashMap.Externalizer(), exts);
       addInternalExternalizer(new AtomicHashMapDelta.Externalizer(), exts);
       addInternalExternalizer(new AvailabilityMode.Externalizer(), exts);
+      addInternalExternalizer(new BiFunctionMapper.Externalizer(), exts);
       addInternalExternalizer(new ByteBufferImpl.Externalizer(), exts);
       addInternalExternalizer(new CacheEventConverterAsConverter.Externalizer(), exts);
       addInternalExternalizer(new CacheEventFilterAsKeyValueFilter.Externalizer(), exts);

@@ -25,6 +25,7 @@ import org.infinispan.commons.util.CloseableIteratorMapper;
 import org.infinispan.commons.util.CloseableSpliterator;
 import org.infinispan.commons.util.CloseableSpliteratorMapper;
 import org.infinispan.commons.util.InjectiveFunction;
+import org.infinispan.compat.BiFunctionMapper;
 import org.infinispan.compat.ConverterKeyMapper;
 import org.infinispan.compat.ConverterEntryMapper;
 import org.infinispan.compat.ConverterValueMapper;
@@ -380,8 +381,6 @@ public class TypeConverterDelegatingAdvancedCache<K, V> extends AbstractDelegati
                   .thenApply(unboxValue);
    }
 
-
-
    @Override
    protected void set(K key, V value) {
       super.set(boxKey(key), boxValue(value));
@@ -700,7 +699,8 @@ public class TypeConverterDelegatingAdvancedCache<K, V> extends AbstractDelegati
 
    @Override
    public V merge(K key, V value, BiFunction<? super V, ? super V, ? extends V> remappingFunction) {
-      V returned = super.merge(boxKey(key), value, remappingFunction);
+      BiFunctionMapper mapper = new BiFunctionMapper(remappingFunction);
+      V returned = super.merge(boxKey(key), boxValue(value), (BiFunction<? super V, ? super V, ? extends V>) mapper);
       return unboxValue(returned);
    }
 

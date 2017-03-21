@@ -14,6 +14,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.function.BiConsumer;
 
 import org.infinispan.commons.util.ObjectDuplicator;
 import org.infinispan.configuration.cache.ConfigurationBuilder;
@@ -510,6 +511,20 @@ public class APINonTxTest extends SingleCacheManagerTest {
       cache.putForExternalRead("key", "value2");
       assertNoLocks(cache);
       assertEquals("value", cache.get("key"));
+   }
+
+   public void testForEach() {
+      cache.put("A", "B");
+      cache.put("C", "D");
+
+      List<String> values = new ArrayList<>();
+      BiConsumer<? super Object, ? super Object> collectKeyValues = (k, v) -> values.add("hello_" + k.toString() + v.toString());
+
+      cache.forEach(collectKeyValues);
+
+      assertEquals(2, values.size());
+      assertEquals("hello_AB", values.get(0));
+      assertEquals("hello_CD", values.get(1));
    }
 
    private void assertCacheIsEmpty() {

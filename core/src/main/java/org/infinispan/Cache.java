@@ -5,6 +5,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.TimeUnit;
+import java.util.function.BiConsumer;
 
 import org.infinispan.commons.api.BasicCache;
 import org.infinispan.commons.api.BatchingCache;
@@ -14,6 +15,7 @@ import org.infinispan.lifecycle.ComponentStatus;
 import org.infinispan.manager.DefaultCacheManager;
 import org.infinispan.manager.EmbeddedCacheManager;
 import org.infinispan.notifications.FilteringListenable;
+import org.infinispan.util.function.SerializableBiConsumer;
 
 /**
  * The central interface of Infinispan.  A Cache provides a highly concurrent, optionally distributed data structure
@@ -356,5 +358,14 @@ public interface Cache<K, V> extends BasicCache<K, V>, BatchingCache, FilteringL
     */
    default void shutdown() {
       stop();
+   }
+
+   /**
+    * Overloaded version of {@link ConcurrentMap#forEach(BiConsumer)} with the Serializable BiConsumer interface
+    *
+    * @param action apply action in each element
+    */
+   default void forEach(SerializableBiConsumer<? super K, ? super V> action) {
+      forEach((BiConsumer) action);
    }
 }

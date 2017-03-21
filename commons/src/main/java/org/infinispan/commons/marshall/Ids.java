@@ -177,4 +177,6 @@ public interface Ids {
    int FUNCTIONAL_ENTRY_VERSION_ADAPTER = 117;
 
    int WRITE_RESPONSE = 118;
+
+   int BI_CONSUMER_MAPPER = 119;
 }

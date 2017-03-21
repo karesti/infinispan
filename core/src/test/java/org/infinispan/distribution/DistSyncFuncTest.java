@@ -12,6 +12,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.Random;
 import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.atomic.AtomicInteger;
 
 import org.infinispan.Cache;
 import org.infinispan.commands.write.ClearCommand;
@@ -22,6 +24,7 @@ import org.infinispan.commons.util.ObjectDuplicator;
 import org.infinispan.context.Flag;
 import org.infinispan.remoting.transport.Address;
 import org.infinispan.test.TestingUtil;
+import org.infinispan.util.function.SerializableBiConsumer;
 import org.testng.annotations.Test;
 
 @Test(groups = {"functional", "smoke"}, testName = "distribution.DistSyncFuncTest")
@@ -254,5 +257,39 @@ public class DistSyncFuncTest extends BaseDistFunctionalTest<Object, String> {
          assertTrue(expKeyEntries.isEmpty(), "Did not see keys " + expKeyEntries + " in iterator!");
          assertTrue(expValueEntries.isEmpty(), "Did not see keys " + expValueEntries + " in iterator!");
       }
+   }
+
+   static final Map<Object, String> forEachStructure = new ConcurrentHashMap<>();
+   static final AtomicInteger forEachOffset = new AtomicInteger();
+
+   static int populateNextForEachStructure(String obj) {
+      int offset = forEachOffset.getAndIncrement();
+      forEachStructure.put(offset, obj);
+      return offset;
+   }
+
+   public void testForEach() throws Exception {
+      c1.put("1", "one");
+      asyncWait("1", PutKeyValueCommand.class);
+      c2.put("2", "two");
+      asyncWait("2", PutKeyValueCommand.class);
+      c3.put("3", "three");
+      asyncWait("3", PutKeyValueCommand.class);
+      c4.put("4", "four");
+      asyncWait("4", PutKeyValueCommand.class);
+
+      SerializableBiConsumer<Object, String> localConsumer = (k, v) -> {
+        populateNextForEachStructure(v);
+      };
+
+      c4.getAdvancedCache().forEach(localConsumer);
+
+      assertTrue(forEachStructure.size() == 4);
+      assertTrue(forEachStructure.containsValue("one")
+            && forEachStructure.containsValue("two")
+            && forEachStructure.containsValue("three")
+            && forEachStructure.containsValue("four"));
+
+      forEachStructure.clear();
    }
 }

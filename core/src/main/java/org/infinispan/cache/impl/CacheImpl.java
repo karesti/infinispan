@@ -24,6 +24,7 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.TimeUnit;
+import java.util.function.BiConsumer;
 
 import javax.transaction.InvalidTransactionException;
 import javax.transaction.SystemException;
@@ -272,6 +273,11 @@ public class CacheImpl<K, V> implements AdvancedCache<K, V> {
    @Override
    public final boolean replace(K key, V oldValue, V value, long lifespan, TimeUnit unit) {
       return replace(key, oldValue, value, lifespan, unit, defaultMetadata.maxIdle(), MILLISECONDS);
+   }
+
+   @Override
+   public final void forEach(BiConsumer<? super K, ? super V> action) {
+      entrySet().stream().forEach(entry -> action.accept(entry.getKey(), entry.getValue()));
    }
 
    @Override

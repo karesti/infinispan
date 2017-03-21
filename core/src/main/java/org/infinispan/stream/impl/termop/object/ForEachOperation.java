@@ -45,6 +45,8 @@ public class ForEachOperation<K, V> extends AbstractForEachOperation<K, V, Strea
       super.handleInjection(registry);
       if (consumer instanceof CacheAware) {
          ((CacheAware) consumer).injectCache(registry.getComponent(Cache.class));
+      }else {
+         registry.wireDependencies(consumer);
       }
    }
 }

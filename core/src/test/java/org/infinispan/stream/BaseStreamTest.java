@@ -2250,23 +2250,23 @@ public abstract class BaseStreamTest extends MultipleCacheManagersTest {
    public void testKeySegmentFilter() {
       Cache<Integer, String> cache = getCache(0);
       int range = 12;
+      int segments = cache.getCacheConfiguration().clustering().hash().numSegments() / 2;
+      AtomicInteger realCount = new AtomicInteger();
+
+      KeyPartitioner keyPartitioner = cache.getAdvancedCache().getComponentRegistry().getComponent(KeyPartitioner.class);
+
       // First populate the cache with a bunch of values
-      IntStream.range(0, range).boxed().forEach(i -> cache.put(i, i + "-value"));
+      IntStream.range(0, range).boxed().forEach(i -> {
+         if (segments >= keyPartitioner.getSegment(i)) {
+            realCount.incrementAndGet();
+         }
+         cache.put(i, i + "-value");
+      });
 
       assertEquals(range, cache.size());
       CacheSet<Map.Entry<Integer, String>> entrySet = cache.entrySet();
 
       // Take the first half of the segments
-      int segments = cache.getCacheConfiguration().clustering().hash().numSegments() / 2;
-      AtomicInteger realCount = new AtomicInteger();
-
-      KeyPartitioner keyPartitioner = cache.getAdvancedCache().getComponentRegistry().getComponent(KeyPartitioner.class);
-      cache.forEach((k, v) -> {
-         if (segments >= keyPartitioner.getSegment(k)) {
-            realCount.incrementAndGet();
-         }
-      });
-
       assertEquals(realCount.get(), createStream(entrySet).filterKeySegments(
               IntStream.range(0, segments).boxed().collect(Collectors.toSet())).count());
    }

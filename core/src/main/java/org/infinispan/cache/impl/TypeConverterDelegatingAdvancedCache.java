@@ -25,8 +25,9 @@ import org.infinispan.commons.util.CloseableIteratorMapper;
 import org.infinispan.commons.util.CloseableSpliterator;
 import org.infinispan.commons.util.CloseableSpliteratorMapper;
 import org.infinispan.commons.util.InjectiveFunction;
-import org.infinispan.compat.ConverterKeyMapper;
+import org.infinispan.compat.BiConsumerMapper;
 import org.infinispan.compat.ConverterEntryMapper;
+import org.infinispan.compat.ConverterKeyMapper;
 import org.infinispan.compat.ConverterValueMapper;
 import org.infinispan.compat.TypeConverter;
 import org.infinispan.container.InternalEntryFactory;
@@ -684,11 +685,7 @@ public class TypeConverterDelegatingAdvancedCache<K, V> extends AbstractDelegati
 
    @Override
    public void forEach(BiConsumer<? super K, ? super V> action) {
-      super.forEach((k, v) -> {
-         K newK = unboxKey(k);
-         V newV = unboxValue(v);
-         action.accept(newK, newV);
-      });
+      super.entrySet().stream().forEach(new BiConsumerMapper(action));
    }
 
    @Override

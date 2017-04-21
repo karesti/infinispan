@@ -581,9 +581,11 @@ public class APINonTxTest extends SingleCacheManagerTest {
       assertEquals("hello world", cache.computeIfAbsent("hello", functionAfterPut));
       assertEquals("hello world", cache.get("hello"));
 
+      int cacheSizeBeforeNullValueCompute = cache.size();
       Function<Object, String> functionMapsToNull = k -> null;
-      assertNull( cache.computeIfAbsent("kaixo", functionMapsToNull), "with function mapping to null returns null");
+      assertNull(cache.computeIfAbsent("kaixo", functionMapsToNull), "with function mapping to null returns null");
       assertNull(cache.get("kaixo"), "the key does not exist");
+      assertEquals(cacheSizeBeforeNullValueCompute, cache.size());
    }
 
    public void testComputeIfPresent() {
@@ -616,6 +618,11 @@ public class APINonTxTest extends SingleCacheManagerTest {
       BiFunction<Object, Object, String> mappingToNull = (k, v) -> null;
       assertNull(cache.compute("es", mappingToNull), "mapping to null returns null");
       assertNull(cache.get("es"), "the key is removed");
+
+      int cacheSizeBeforeNullValueCompute = cache.size();
+      assertNull(cache.compute("eus", mappingToNull), "mapping to null returns null");
+      assertNull(cache.get("eus"), "the key does not exist");
+      assertEquals(cacheSizeBeforeNullValueCompute, cache.size());
    }
 
    public void testReplaceAll() {

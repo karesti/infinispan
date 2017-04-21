@@ -5,6 +5,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
+import java.util.function.BiFunction;
+import java.util.function.Function;
 
 import javax.transaction.TransactionManager;
 import javax.transaction.xa.XAResource;
@@ -414,6 +416,56 @@ public interface AdvancedCache<K, V> extends Cache<K, V> {
     * @since 7.0
     */
    void putForExternalRead(K key, V value, Metadata metadata);
+
+   /**
+    * An overloaded form of {@link #compute(K, BiFunction)}, which takes in an
+    * instance of {@link Metadata} which can be used to provide metadata
+    * information for the entry being stored, such as lifespan, version
+    * of value...etc.
+    *
+    * @param key key with which the specified value is associated
+    * @param remappingFunction function to be applied to the specified key/value
+    * @param metadata information to store alongside the new value
+    * @return the previous value associated with the specified key, or
+    *         <tt>null</tt> if remapping function is gives null.
+    *
+    * @since 9.x
+    */
+   V compute(K key, BiFunction<? super K, ? super V, ? extends V> remappingFunction, Metadata metadata);
+
+   /**
+    * An overloaded form of {@link #computeIfPresent(K, BiFunction)}, which takes in an
+    * instance of {@link Metadata} which can be used to provide metadata
+    * information for the entry being stored, such as lifespan, version
+    * of value...etc. The {@link Metadata} is only stored if the call is
+    * successful.
+    *
+    * @param key key with which the specified value is associated
+    * @param remappingFunction function to be applied to the specified key/value
+    * @param metadata information to store alongside the new value
+    * @return the previous value associated with the specified key, or
+    *         <tt>null</tt> if there was no mapping for the key.
+    *
+    * @since 9.x
+    */
+   V computeIfPresent(K key, BiFunction<? super K, ? super V, ? extends V> remappingFunction, Metadata metadata);
+
+   /**
+    * An overloaded form of {@link #computeIfAbsent(K, Function)}, which takes in an
+    * instance of {@link Metadata} which can be used to provide metadata
+    * information for the entry being stored, such as lifespan, version
+    * of value...etc. The {@link Metadata} is only stored if the call is
+    * successful.
+    *
+    * @param key key with which the specified value is associated
+    * @param mappingFunction function to be applied to the specified key
+    * @param metadata information to store alongside the new value
+    * @return the value created with the mapping function associated with the specified key, or
+    *        the previous value associated with the specified key if the key is not absent.
+    *
+    * @since 9.x
+    */
+   V computeIfAbsent(K key, Function<? super K, ? extends V> mappingFunction, Metadata metadata);
 
    /**
     * Asynchronous version of {@link #put(Object, Object, Metadata)} which stores

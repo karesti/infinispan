@@ -25,9 +25,11 @@ import org.infinispan.commons.util.CloseableIteratorMapper;
 import org.infinispan.commons.util.CloseableSpliterator;
 import org.infinispan.commons.util.CloseableSpliteratorMapper;
 import org.infinispan.commons.util.InjectiveFunction;
-import org.infinispan.compat.ConverterKeyMapper;
+import org.infinispan.compat.BiFunctionMapper;
 import org.infinispan.compat.ConverterEntryMapper;
+import org.infinispan.compat.ConverterKeyMapper;
 import org.infinispan.compat.ConverterValueMapper;
+import org.infinispan.compat.FunctionMapper;
 import org.infinispan.compat.TypeConverter;
 import org.infinispan.container.InternalEntryFactory;
 import org.infinispan.container.entries.CacheEntry;
@@ -41,6 +43,7 @@ import org.infinispan.metadata.Metadata;
 /**
  * Advanced cache that converts key/value passed in to the new type before passing to the underlying cache.  Results
  * are then also converted back using the converter.
+ *
  * @author wburns
  * @since 9.0
  */
@@ -152,19 +155,19 @@ public class TypeConverterDelegatingAdvancedCache<K, V> extends AbstractDelegati
 
    @Override
    public V compute(K key, BiFunction<? super K, ? super V, ? extends V> remappingFunction) {
-      V returned = super.compute(boxKey(key), convertFunction(remappingFunction));
+      V returned = super.compute(boxKey(key), new BiFunctionMapper<>(remappingFunction, getConverter()));
       return unboxValue(returned);
    }
 
    @Override
    public V computeIfAbsent(K key, Function<? super K, ? extends V> mappingFunction) {
-      V returned = super.computeIfAbsent(boxKey(key), convertFunction(mappingFunction));
+      V returned = super.computeIfAbsent(boxKey(key), new FunctionMapper<>(mappingFunction, getConverter()));
       return unboxValue(returned);
    }
 
    @Override
    public V computeIfPresent(K key, BiFunction<? super K, ? super V, ? extends V> remappingFunction) {
-      V returned = super.computeIfPresent(boxKey(key), convertFunction(remappingFunction));
+      V returned = super.computeIfPresent(boxKey(key), new BiFunctionMapper<>(remappingFunction, getConverter()));
       return unboxValue(returned);
    }
 
@@ -254,13 +257,13 @@ public class TypeConverterDelegatingAdvancedCache<K, V> extends AbstractDelegati
    @Override
    public CompletableFuture<V> putAsync(K key, V value, long lifespan, TimeUnit lifespanUnit, long maxIdle, TimeUnit maxIdleUnit) {
       return super.putAsync(boxKey(key), boxValue(value), lifespan, lifespanUnit, maxIdle, maxIdleUnit)
-                  .thenApply(unboxValue);
+            .thenApply(unboxValue);
    }
 
    @Override
    public CompletableFuture<V> putAsync(K key, V value, long lifespan, TimeUnit unit) {
       return super.putAsync(boxKey(key), boxValue(value), lifespan, unit)
-                  .thenApply(unboxValue);
+            .thenApply(unboxValue);
    }
 
    @Override
@@ -281,19 +284,19 @@ public class TypeConverterDelegatingAdvancedCache<K, V> extends AbstractDelegati
    @Override
    public CompletableFuture<V> putIfAbsentAsync(K key, V value) {
       return super.putIfAbsentAsync(boxKey(key), boxValue(value))
-                  .thenApply(unboxValue);
+            .thenApply(unboxValue);
    }
 
    @Override
    public CompletableFuture<V> putIfAbsentAsync(K key, V value, long lifespan, TimeUnit lifespanUnit, long maxIdle, TimeUnit maxIdleUnit) {
       return super.putIfAbsentAsync(boxKey(key), boxValue(value), lifespan, lifespanUnit, maxIdle, maxIdleUnit)
-                  .thenApply(unboxValue);
+            .thenApply(unboxValue);
    }
 
    @Override
    public CompletableFuture<V> putIfAbsentAsync(K key, V value, long lifespan, TimeUnit unit) {
       return super.putIfAbsentAsync(boxKey(key), boxValue(value), lifespan, unit)
-                  .thenApply(unboxValue);
+            .thenApply(unboxValue);
    }
 
    @Override
@@ -310,7 +313,7 @@ public class TypeConverterDelegatingAdvancedCache<K, V> extends AbstractDelegati
    @Override
    public CompletableFuture<V> removeAsync(Object key) {
       return super.removeAsync(boxKey((K) key))
-                  .thenApply(unboxValue);
+            .thenApply(unboxValue);
    }
 
    @Override
@@ -369,19 +372,19 @@ public class TypeConverterDelegatingAdvancedCache<K, V> extends AbstractDelegati
    @Override
    public CompletableFuture<V> replaceAsync(K key, V value) {
       return super.replaceAsync(boxKey(key), boxValue(value))
-                  .thenApply(unboxValue);
+            .thenApply(unboxValue);
    }
 
    @Override
    public CompletableFuture<V> replaceAsync(K key, V value, long lifespan, TimeUnit lifespanUnit, long maxIdle, TimeUnit maxIdleUnit) {
       return super.replaceAsync(boxKey(key), boxValue(value), lifespan, lifespanUnit, maxIdle, maxIdleUnit)
-                  .thenApply(unboxValue);
+            .thenApply(unboxValue);
    }
 
    @Override
    public CompletableFuture<V> replaceAsync(K key, V value, long lifespan, TimeUnit unit) {
       return super.replaceAsync(boxKey(key), boxValue(value), lifespan, unit)
-                  .thenApply(unboxValue);
+            .thenApply(unboxValue);
    }
 
    @Override
@@ -398,7 +401,7 @@ public class TypeConverterDelegatingAdvancedCache<K, V> extends AbstractDelegati
    @Override
    public CompletableFuture<V> getAsync(K key) {
       return super.getAsync(boxKey(key))
-                  .thenApply(unboxValue);
+            .thenApply(unboxValue);
    }
 
    @Override
@@ -435,7 +438,7 @@ public class TypeConverterDelegatingAdvancedCache<K, V> extends AbstractDelegati
    @Override
    public CompletableFuture<V> putAsync(K key, V value, Metadata metadata) {
       return super.putAsync(boxKey(key), boxValue(value), metadata)
-                  .thenApply(unboxValue);
+            .thenApply(unboxValue);
    }
 
    @Override

@@ -15,6 +15,8 @@ import java.util.concurrent.CompletableFuture;
 
 import org.infinispan.commands.Visitor;
 import org.infinispan.commands.write.ApplyDeltaCommand;
+import org.infinispan.commands.write.ComputeCommand;
+import org.infinispan.commands.write.ComputeIfAbsentCommand;
 import org.infinispan.commands.write.DataWriteCommand;
 import org.infinispan.commands.write.PutKeyValueCommand;
 import org.infinispan.commands.write.PutMapCommand;
@@ -132,6 +134,8 @@ public class PrepareCommand extends AbstractTransactionBoundaryCommand implement
          switch (writeCommand.getCommandId()) {
             case PutKeyValueCommand.COMMAND_ID:
             case RemoveCommand.COMMAND_ID:
+            case ComputeCommand.COMMAND_ID:
+            case ComputeIfAbsentCommand.COMMAND_ID:
             case RemoveExpiredCommand.COMMAND_ID:
             case ReplaceCommand.COMMAND_ID:
                set.add(((DataWriteCommand) writeCommand).getKey());

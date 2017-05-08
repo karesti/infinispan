@@ -28,7 +28,7 @@ public class ComputeCommand extends AbstractDataWriteCommand implements Metadata
    private Metadata metadata;
    private CacheNotifier<Object, Object> notifier;
    private boolean computeIfPresent;
-   private boolean successful;
+   private boolean successful = true;
 
    public ComputeCommand() {
    }
@@ -110,20 +110,18 @@ public class ComputeCommand extends AbstractDataWriteCommand implements Metadata
       Object oldValue = e.getValue();
       Object newValue;
 
-
       if(computeIfPresent && oldValue == null) {
-         successful = true;
          return oldValue;
       }
 
       try {
          newValue = remappingBiFunction.apply(key, oldValue);
       } catch (RuntimeException ex) {
+         successful = false;
          throw new UserRaisedFunctionalException(ex);
       }
 
       if (oldValue == null && newValue == null) {
-         successful = true;
          return null;
       }
 
@@ -158,7 +156,6 @@ public class ComputeCommand extends AbstractDataWriteCommand implements Metadata
             e.setValid(true);
          }
       }
-      successful = true;
       return computeResult;
    }
 

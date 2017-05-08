@@ -27,7 +27,7 @@ public class ComputeIfAbsentCommand extends AbstractDataWriteCommand implements 
    private Function mappingFunction;
    private Metadata metadata;
    private CacheNotifier<Object, Object> notifier;
-   private boolean successful = false;
+   private boolean successful = true;
 
    public ComputeIfAbsentCommand() {
    }
@@ -102,6 +102,7 @@ public class ComputeIfAbsentCommand extends AbstractDataWriteCommand implements 
          try {
             value = mappingFunction.apply(key);
          } catch (RuntimeException ex) {
+            successful = false;
             throw new UserRaisedFunctionalException(ex);
          }
 
@@ -120,7 +121,6 @@ public class ComputeIfAbsentCommand extends AbstractDataWriteCommand implements 
             e.setChanged(true);
          }
       }
-      successful = true;
       return value;
    }
 

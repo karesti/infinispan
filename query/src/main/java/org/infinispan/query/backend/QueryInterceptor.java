@@ -435,13 +435,19 @@ public final class QueryInterceptor extends DDAsyncInterceptor {
     * @param transactionContext Optional for lazy initialization, or reuse an existing context.
     */
    private void processComputeIfAbsentCommand(final ComputeIfAbsentCommand command, final InvocationContext ctx, final Object prevValue, TransactionContext transactionContext) {
+      Object computedValue =  ctx.lookupEntry(command.getKey()).getValue();
+      System.out.println("" + Thread.currentThread().getId() + " command Success = " + command.isSuccessful());
+      System.out.println("" + Thread.currentThread().getId() + " prevVal = " + prevValue);
+      System.out.println("" + Thread.currentThread().getId() + " computedVal = " + computedValue);
       if (command.isSuccessful()) {
-         processComputes(command, ctx, prevValue, ctx.lookupEntry(command.getKey()).getValue(), transactionContext);
+         processComputes(command, ctx, prevValue, computedValue, transactionContext);
       }
    }
 
    private void processComputes(AbstractDataWriteCommand command, InvocationContext ctx, Object prevValue, Object computedValue, TransactionContext transactionContext) {
       Object key = extractValue(command.getKey());
+      System.out.println("" + Thread.currentThread().getId() + " modifyIndex =" + shouldModifyIndexes(command, ctx, key));
+
       if (shouldModifyIndexes(command, ctx, key)) {
          final boolean usingSkipIndexCleanupFlag = usingSkipIndexCleanup(command);
          Object p2 = extractValue(computedValue);
@@ -522,6 +528,11 @@ public final class QueryInterceptor extends DDAsyncInterceptor {
     * @param transactionContext Optional for lazy initialization, or reuse an existing context.
     */
    private void processPutKeyValueCommand(final PutKeyValueCommand command, final InvocationContext ctx, final Object previousValue, TransactionContext transactionContext) {
+
+      System.out.println("" + Thread.currentThread().getId() + " should modify ? = " + shouldModifyIndexes(command, ctx, command.getKey()));
+      //System.out.println("" + Thread.currentThread().getId() + " prevVal = " + prevValue);
+      System.out.println("" + Thread.currentThread().getId() + " valueInContext = " + ctx.lookupEntry(command.getKey()).getValue());
+
       final boolean usingSkipIndexCleanupFlag = usingSkipIndexCleanup(command);
       //whatever the new type, we might still need to cleanup for the previous value (and schedule removal first!)
       Object value = extractValue(command.getValue());

@@ -8,6 +8,7 @@ import java.io.ObjectOutput;
 import java.util.Objects;
 import java.util.function.BiFunction;
 
+import org.infinispan.UserRaisedFunctionalException;
 import org.infinispan.commands.CommandInvocationId;
 import org.infinispan.commands.MetadataAwareCommand;
 import org.infinispan.commands.Visitor;
@@ -27,7 +28,7 @@ public class ComputeCommand extends AbstractDataWriteCommand implements Metadata
    private Metadata metadata;
    private CacheNotifier<Object, Object> notifier;
    private boolean computeIfPresent;
-   private boolean successful = true;
+   private boolean successful;
 
    public ComputeCommand() {
    }
@@ -99,6 +100,11 @@ public class ComputeCommand extends AbstractDataWriteCommand implements Metadata
    }
 
    @Override
+   public void fail() {
+      successful = false;
+   }
+
+   @Override
    public Object perform(InvocationContext ctx) throws Throwable {
       MVCCEntry<Object, Object> e = (MVCCEntry) ctx.lookupEntry(key);
 
@@ -107,17 +113,35 @@ public class ComputeCommand extends AbstractDataWriteCommand implements Metadata
       }
 
       Object oldValue = e.getValue();
+      Object newValue;
+
+
+      if(computeIfPresent && oldValue == null) {
+         successful = true;
+         return oldValue;
+      }
+
+      try {
+         newValue = remappingBiFunction.apply(key, oldValue);
+      } catch (RuntimeException ex) {
+         throw new UserRaisedFunctionalException(ex);
+      }
+
+      if (oldValue == null && newValue == null) {
+         successful = true;
+         return null;
+      }
+
+      Object computeResult = newValue;
 
       if (oldValue != null) {
-         Object newValue = remappingBiFunction.apply(key, oldValue);
+         // The key already has a value
          if (newValue != null && !newValue.equals(oldValue)) {
             //replace with the new value if there is a modification on the value
             notifier.notifyCacheEntryModified(key, newValue, metadata, oldValue, e.getMetadata(), true, ctx, this);
             e.setChanged(true);
             e.setValue(newValue);
             Metadatas.updateMetadata(e, metadata);
-            return newValue;
-
          } else {
             // remove when new value is null
             notifier.notifyCacheEntryRemoved(key, oldValue, e.getMetadata(), true, ctx, this);
@@ -125,15 +149,9 @@ public class ComputeCommand extends AbstractDataWriteCommand implements Metadata
             e.setValid(false);
             e.setChanged(true);
             e.setValue(null);
-            return null;
          }
-      } else if (!computeIfPresent) {
+      } else {
          // put if not present
-         Object newValue = remappingBiFunction.apply(key, oldValue);
-         if (newValue == null) {
-            successful = false;
-            return null;
-         }
          notifier.notifyCacheEntryCreated(key, newValue, metadata, true, ctx, this);
          e.setValue(newValue);
          e.setChanged(true);
@@ -144,11 +162,9 @@ public class ComputeCommand extends AbstractDataWriteCommand implements Metadata
             e.setRemoved(false);
             e.setValid(true);
          }
-         return newValue;
-
       }
-
-      return oldValue;
+      successful = true;
+      return computeResult;
    }
 
    @Override

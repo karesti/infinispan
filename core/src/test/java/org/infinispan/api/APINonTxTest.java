@@ -586,6 +586,12 @@ public class APINonTxTest extends SingleCacheManagerTest {
       assertNull(cache.computeIfAbsent("kaixo", functionMapsToNull), "with function mapping to null returns null");
       assertNull(cache.get("kaixo"), "the key does not exist");
       assertEquals(cacheSizeBeforeNullValueCompute, cache.size());
+
+      RuntimeException computeRaisedException = new RuntimeException("hi there");
+      Function<Object, String> functionMapsToException = k -> {
+         throw computeRaisedException;
+      };
+      expectException(RuntimeException.class, "hi there", () -> cache.computeIfAbsent("es", functionMapsToException));
    }
 
    public void testComputeIfPresent() {
@@ -594,6 +600,12 @@ public class APINonTxTest extends SingleCacheManagerTest {
 
       assertEquals("hello_es:hola", cache.computeIfPresent("es", mappingFunction));
       assertEquals("hello_es:hola", cache.get("es"));
+
+      RuntimeException computeRaisedException = new RuntimeException("hi there");
+      BiFunction<Object, Object, String> mappingToException = (k, v) -> {
+         throw computeRaisedException;
+      };
+      expectException(RuntimeException.class, "hi there", () -> cache.computeIfPresent("es", mappingToException));
 
       BiFunction<Object, Object, String> mappingForNotPresentKey = (k, v) -> "absent_" + k + ":" + v;
       assertNull(cache.computeIfPresent("fr", mappingForNotPresentKey), "unexisting key should return null");
@@ -623,6 +635,12 @@ public class APINonTxTest extends SingleCacheManagerTest {
       assertNull(cache.compute("eus", mappingToNull), "mapping to null returns null");
       assertNull(cache.get("eus"), "the key does not exist");
       assertEquals(cacheSizeBeforeNullValueCompute, cache.size());
+
+      RuntimeException computeRaisedException = new RuntimeException("hi there");
+      BiFunction<Object, Object, String> mappingToException = (k, v) -> {
+         throw computeRaisedException;
+      };
+      expectException(RuntimeException.class, "hi there", () -> cache.compute("es", mappingToException));
    }
 
    public void testReplaceAll() {

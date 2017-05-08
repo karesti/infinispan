@@ -45,7 +45,7 @@ public class L1TxInterceptor extends L1NonTxInterceptor {
 
    @Override
    public Object visitComputeIfAbsentCommand(InvocationContext ctx, ComputeIfAbsentCommand command) throws Throwable {
-      return performCommandWithL1WriteIfAble(ctx, command, false, true, true);
+      return performCommandWithL1WriteIfAble(ctx, command, false, true, false);
    }
 
    @Override

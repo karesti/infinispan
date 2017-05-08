@@ -173,12 +173,16 @@ public final class QueryInterceptor extends DDAsyncInterceptor {
 
    @Override
    public Object visitComputeCommand(InvocationContext ctx, ComputeCommand command) throws Throwable {
-      return invokeNextThenAccept(ctx, command, (rCtx, rCommand, rv) -> processComputeCommand(((ComputeCommand) rCommand), rCtx, rv, null));
+      InternalCacheEntry internalCacheEntry = dataContainer.get(command.getKey());
+      Object stateBeforeCompute = internalCacheEntry != null ? internalCacheEntry.getValue() : null;
+      return invokeNextThenAccept(ctx, command, (rCtx, rCommand, rv) -> processComputeCommand(((ComputeCommand) rCommand), rCtx, stateBeforeCompute, null));
    }
 
    @Override
    public Object visitComputeIfAbsentCommand(InvocationContext ctx, ComputeIfAbsentCommand command) throws Throwable {
-      return invokeNextThenAccept(ctx, command, (rCtx, rCommand, rv) -> processComputeIfAbsentCommand(((ComputeIfAbsentCommand) rCommand), rCtx, rv, null));
+      InternalCacheEntry internalCacheEntry = dataContainer.get(command.getKey());
+      Object stateBeforeCompute = internalCacheEntry != null ? internalCacheEntry.getValue() : null;
+      return invokeNextThenAccept(ctx, command, (rCtx, rCommand, rv) -> processComputeIfAbsentCommand(((ComputeIfAbsentCommand) rCommand), rCtx, stateBeforeCompute, null));
    }
 
    @Override
@@ -355,11 +359,9 @@ public final class QueryInterceptor extends DDAsyncInterceptor {
                   processReplaceCommand((ReplaceCommand) writeCommand, txInvocationContext, stateBeforePrepare[i],
                         transactionContext);
                } else if (writeCommand instanceof ComputeCommand) {
-                  processComputeCommand((ComputeCommand) writeCommand, txInvocationContext, stateBeforePrepare[i],
-                        transactionContext);
+                  processComputeCommand((ComputeCommand) writeCommand, txInvocationContext, stateBeforePrepare[i], transactionContext);
                } else if (writeCommand instanceof ComputeIfAbsentCommand) {
-                     processComputeIfAbsentCommand((ComputeIfAbsentCommand) writeCommand, txInvocationContext, stateBeforePrepare[i],
-                           transactionContext);
+                     processComputeIfAbsentCommand((ComputeIfAbsentCommand) writeCommand, txInvocationContext, stateBeforePrepare[i], transactionContext);
                } else if (writeCommand instanceof ClearCommand) {
                   processClearCommand((ClearCommand) writeCommand, txInvocationContext, transactionContext);
                }
@@ -415,12 +417,12 @@ public final class QueryInterceptor extends DDAsyncInterceptor {
     *
     * @param command the ComputeCommand
     * @param ctx the InvocationContext
-    * @param computedValue the previous value on this key
+    * @param prevValue the previous value on this key
     * @param transactionContext Optional for lazy initialization, or reuse an existing context.
     */
-   private void processComputeCommand(final ComputeCommand command, final InvocationContext ctx, final Object computedValue, TransactionContext transactionContext) {
-      if (command.isSuccessful() && (!command.isComputeIfPresent() || (command.isComputeIfPresent() && computedValue != null))) {
-         processComputes(command, ctx, computedValue, transactionContext);
+   private void processComputeCommand(final ComputeCommand command, final InvocationContext ctx, final Object prevValue, TransactionContext transactionContext) {
+      if (command.isSuccessful()) {
+         processComputes(command, ctx, prevValue, ctx.lookupEntry(command.getKey()).getValue(), transactionContext);
       }
    }
 
@@ -429,26 +431,26 @@ public final class QueryInterceptor extends DDAsyncInterceptor {
     *
     * @param command the ComputeIfAbsentCommand
     * @param ctx the InvocationContext
-    * @param computedValue the previous value on this key
+    * @param prevValue the value before the call
     * @param transactionContext Optional for lazy initialization, or reuse an existing context.
     */
-   private void processComputeIfAbsentCommand(final ComputeIfAbsentCommand command, final InvocationContext ctx, final Object computedValue, TransactionContext transactionContext) {
+   private void processComputeIfAbsentCommand(final ComputeIfAbsentCommand command, final InvocationContext ctx, final Object prevValue, TransactionContext transactionContext) {
       if (command.isSuccessful()) {
-         processComputes(command, ctx, computedValue, transactionContext);
+         processComputes(command, ctx, prevValue, ctx.lookupEntry(command.getKey()).getValue(), transactionContext);
       }
    }
 
-   private void processComputes(AbstractDataWriteCommand command, InvocationContext ctx, Object valueComputed, TransactionContext transactionContext) {
+   private void processComputes(AbstractDataWriteCommand command, InvocationContext ctx, Object prevValue, Object computedValue, TransactionContext transactionContext) {
       Object key = extractValue(command.getKey());
       if (shouldModifyIndexes(command, ctx, key)) {
          final boolean usingSkipIndexCleanupFlag = usingSkipIndexCleanup(command);
-         Object p2 = extractValue(valueComputed);
+         Object p2 = extractValue(computedValue);
          final boolean newValueIsIndexed = updateKnownTypesIfNeeded(p2);
 
-         if (!usingSkipIndexCleanupFlag) {
-            if (p2 != null && newValueIsIndexed) {
+         if (!usingSkipIndexCleanupFlag && updateKnownTypesIfNeeded(prevValue) && shouldRemove(p2, prevValue)) {
+            if (shouldModifyIndexes(command, ctx, key)) {
                transactionContext = transactionContext == null ? makeTransactionalEventContext() : transactionContext;
-               removeFromIndexes(p2, key, transactionContext);
+               removeFromIndexes(prevValue, extractValue(key), transactionContext);
             }
          }
          if (newValueIsIndexed) {

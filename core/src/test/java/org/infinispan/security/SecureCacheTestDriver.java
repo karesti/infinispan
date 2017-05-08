@@ -20,6 +20,8 @@ import org.infinispan.notifications.cachelistener.filter.CacheEventConverter;
 import org.infinispan.notifications.cachelistener.filter.CacheEventFilter;
 import org.infinispan.notifications.cachelistener.filter.EventType;
 import org.infinispan.partitionhandling.AvailabilityMode;
+import org.infinispan.util.function.SerializableBiFunction;
+import org.infinispan.util.function.SerializableFunction;
 
 public class SecureCacheTestDriver {
 
@@ -674,6 +676,31 @@ public class SecureCacheTestDriver {
    @TestCachePermission(AuthorizationPermission.LISTEN)
    public void testAddFilteredListener_Object_CacheEventFilter_CacheEventConverter_Set(SecureCache<String, String> cache) {
       cache.addFilteredListener(listener, keyValueFilter, converter, Collections.emptySet());
+   }
+
+   @TestCachePermission(AuthorizationPermission.WRITE)
+   public void testCompute_Object_SerializableBiFunction(SecureCache<String, String> cache) {
+      cache.compute("a", (SerializableBiFunction<? super String, ? super String, ? extends String>) (k, v) -> "yes");
+   }
+
+   @TestCachePermission(AuthorizationPermission.WRITE)
+   public void testComputeIfPresent_Object_SerializableBiFunction(SecureCache<String, String> cache) {
+      cache.computeIfPresent("a", (SerializableBiFunction<? super String, ? super String, ? extends String>) (k, v) -> "yes");
+   }
+
+   @TestCachePermission(AuthorizationPermission.WRITE)
+   public void testComputeIfPresent_Object_SerializableBiFunction_Metadata(SecureCache<String, String> cache) {
+      cache.computeIfPresent("a", (SerializableBiFunction<? super String, ? super String, ? extends String>) (k, v) -> "yes", metadata);
+   }
+
+   @TestCachePermission(AuthorizationPermission.WRITE)
+   public void testComputeIfAbsent_Object_SerializableFunction_Metadata(SecureCache<String, String> cache) {
+      cache.computeIfAbsent("b", (SerializableFunction<? super String, ? extends String>) k -> "no", metadata);
+   }
+
+   @TestCachePermission(AuthorizationPermission.WRITE)
+   public void testComputeIfAbsent_Object_SerializableFunction(SecureCache<String, String> cache) {
+      cache.computeIfAbsent("b", (SerializableFunction<? super String, ? extends String>) k -> "no");
    }
 
 }

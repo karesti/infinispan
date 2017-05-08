@@ -8,6 +8,7 @@ import java.io.ObjectOutput;
 import java.util.Objects;
 import java.util.function.Function;
 
+import org.infinispan.UserRaisedFunctionalException;
 import org.infinispan.commands.CommandInvocationId;
 import org.infinispan.commands.MetadataAwareCommand;
 import org.infinispan.commands.Visitor;
@@ -26,7 +27,7 @@ public class ComputeIfAbsentCommand extends AbstractDataWriteCommand implements 
    private Function mappingFunction;
    private Metadata metadata;
    private CacheNotifier<Object, Object> notifier;
-   private boolean successful = true;
+   private boolean successful = false;
 
    public ComputeIfAbsentCommand() {
    }
@@ -88,6 +89,11 @@ public class ComputeIfAbsentCommand extends AbstractDataWriteCommand implements 
    }
 
    @Override
+   public void fail() {
+      successful = false;
+   }
+
+   @Override
    public Object perform(InvocationContext ctx) throws Throwable {
       MVCCEntry<Object, Object> e = (MVCCEntry) ctx.lookupEntry(key);
 
@@ -98,7 +104,12 @@ public class ComputeIfAbsentCommand extends AbstractDataWriteCommand implements 
       Object value = e.getValue();
 
       if (value == null) {
-         value = mappingFunction.apply(key);
+         try {
+            value = mappingFunction.apply(key);
+         } catch (RuntimeException ex) {
+            throw new UserRaisedFunctionalException(ex);
+         }
+
          if (value != null) {
             e.setValue(value);
             Metadatas.updateMetadata(e, metadata);
@@ -112,11 +123,9 @@ public class ComputeIfAbsentCommand extends AbstractDataWriteCommand implements 
                e.setValid(true);
             }
             e.setChanged(true);
-         } else {
-            // it is not sucessful if the computation gives null value
-            successful = false;
          }
       }
+      successful = true;
       return value;
    }
 

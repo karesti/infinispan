@@ -79,7 +79,7 @@ public class L1LastChanceInterceptor extends BaseRpcInterceptor {
 
    @Override
    public Object visitComputeIfAbsentCommand(InvocationContext ctx, ComputeIfAbsentCommand command) throws Throwable {
-      return visitDataWriteCommand(ctx, command, true);
+      return visitDataWriteCommand(ctx, command, false);
    }
 
    public Object visitDataWriteCommand(InvocationContext ctx, DataWriteCommand command, boolean assumeOriginKeptEntryInL1) throws Throwable {

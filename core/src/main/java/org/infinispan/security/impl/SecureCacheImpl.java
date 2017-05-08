@@ -332,22 +332,37 @@ public final class SecureCacheImpl<K, V> implements SecureCache<K, V> {
    }
 
    @Override
+   public V compute(K key, BiFunction<? super K, ? super V, ? extends V> remappingFunction) {
+      authzManager.checkPermission(AuthorizationPermission.WRITE);
+      return delegate.compute(key, remappingFunction);
+   }
+
+   @Override
    public V compute(K key, BiFunction<? super K, ? super V, ? extends V> remappingFunction, Metadata metadata) {
-      authzManager.checkPermission(AuthorizationPermission.READ);
       authzManager.checkPermission(AuthorizationPermission.WRITE);
       return delegate.compute(key, remappingFunction, metadata);
    }
 
    @Override
+   public V computeIfPresent(K key, BiFunction<? super K, ? super V, ? extends V> remappingFunction) {
+      authzManager.checkPermission(AuthorizationPermission.WRITE);
+      return delegate.computeIfPresent(key, remappingFunction);
+   }
+
+   @Override
    public V computeIfPresent(K key, BiFunction<? super K, ? super V, ? extends V> remappingFunction, Metadata metadata) {
-      authzManager.checkPermission(AuthorizationPermission.READ);
       authzManager.checkPermission(AuthorizationPermission.WRITE);
       return delegate.computeIfPresent(key, remappingFunction, metadata);
    }
 
    @Override
+   public V computeIfAbsent(K key, Function<? super K, ? extends V> mappingFunction) {
+      authzManager.checkPermission(AuthorizationPermission.WRITE);
+      return delegate.computeIfAbsent(key, mappingFunction);
+   }
+
+   @Override
    public V computeIfAbsent(K key, Function<? super K, ? extends V> mappingFunction, Metadata metadata) {
-      authzManager.checkPermission(AuthorizationPermission.READ);
       authzManager.checkPermission(AuthorizationPermission.WRITE);
       return delegate.computeIfAbsent(key, mappingFunction, metadata);
    }

@@ -34,6 +34,8 @@ import org.infinispan.remoting.rpc.RpcManager;
 import org.infinispan.security.AuthorizationManager;
 import org.infinispan.stats.Stats;
 import org.infinispan.util.concurrent.locks.LockManager;
+import org.infinispan.util.function.SerializableBiFunction;
+import org.infinispan.util.function.SerializableFunction;
 
 /**
  * An advanced interface that exposes additional methods not available on {@link Cache}.
@@ -450,6 +452,10 @@ public interface AdvancedCache<K, V> extends Cache<K, V> {
     */
    V computeIfPresent(K key, BiFunction<? super K, ? super V, ? extends V> remappingFunction, Metadata metadata);
 
+   default V computeIfPresent(K key, SerializableBiFunction<? super K, ? super V, ? extends V> remappingFunction, Metadata metadata) {
+      return this.computeIfPresent(key, (BiFunction<? super K, ? super V, ? extends V>) remappingFunction, metadata);
+   }
+
    /**
     * An overloaded form of {@link #computeIfAbsent(K, Function)}, which takes in an
     * instance of {@link Metadata} which can be used to provide metadata
@@ -466,6 +472,10 @@ public interface AdvancedCache<K, V> extends Cache<K, V> {
     * @since 9.x
     */
    V computeIfAbsent(K key, Function<? super K, ? extends V> mappingFunction, Metadata metadata);
+
+   default V computeIfAbsent(K key, SerializableFunction<? super K, ? extends V> mappingFunction, Metadata metadata) {
+      return this.computeIfAbsent(key, (Function<? super K, ? extends V>) mappingFunction, metadata);
+   }
 
    /**
     * Asynchronous version of {@link #put(Object, Object, Metadata)} which stores

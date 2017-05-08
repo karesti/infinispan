@@ -214,7 +214,7 @@ public class L1NonTxInterceptor extends BaseRpcInterceptor {
 
    @Override
    public Object visitComputeCommand(InvocationContext ctx, ComputeCommand command) throws Throwable {
-      return handleDataWriteCommand(ctx, command, false);
+      return handleDataWriteCommand(ctx, command, true);
    }
 
    @Override

@@ -84,11 +84,6 @@ public class ComputeIfAbsentCommand extends AbstractDataWriteCommand implements 
    }
 
    @Override
-   public void updateStatusFromRemoteResponse(Object remoteResponse) {
-      // implementation not needed
-   }
-
-   @Override
    public void fail() {
       successful = false;
    }
@@ -199,5 +194,10 @@ public class ComputeIfAbsentCommand extends AbstractDataWriteCommand implements 
             ", valueMatcher=" + getValueMatcher() +
             ", topologyId=" + getTopologyId() +
             '}';
+   }
+
+   @Override
+   public final boolean isReturnValueExpected() {
+      return true;
    }
 }

@@ -95,11 +95,6 @@ public class ComputeCommand extends AbstractDataWriteCommand implements Metadata
    }
 
    @Override
-   public void updateStatusFromRemoteResponse(Object remoteResponse) {
-      // implementation not needed
-   }
-
-   @Override
    public void fail() {
       successful = false;
    }
@@ -241,5 +236,10 @@ public class ComputeCommand extends AbstractDataWriteCommand implements Metadata
             ", valueMatcher=" + getValueMatcher() +
             ", topologyId=" + getTopologyId() +
             '}';
+   }
+
+   @Override
+   public final boolean isReturnValueExpected() {
+      return true;
    }
 }

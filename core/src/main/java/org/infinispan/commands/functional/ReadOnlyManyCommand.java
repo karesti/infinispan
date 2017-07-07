@@ -9,15 +9,20 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.function.Function;
 
+import org.infinispan.cache.impl.CacheEncoders;
+import org.infinispan.cache.impl.EncodingClasses;
 import org.infinispan.commands.AbstractTopologyAffectedCommand;
 import org.infinispan.commands.LocalCommand;
 import org.infinispan.commands.Visitor;
-import org.infinispan.functional.EntryView.ReadEntryView;
 import org.infinispan.commons.marshall.MarshallUtil;
 import org.infinispan.container.entries.CacheEntry;
 import org.infinispan.context.InvocationContext;
+import org.infinispan.factories.ComponentRegistry;
+import org.infinispan.factories.annotations.Inject;
+import org.infinispan.functional.EntryView.ReadEntryView;
 import org.infinispan.functional.impl.EntryViews;
 import org.infinispan.functional.impl.Params;
+import org.infinispan.marshall.core.EncoderRegistry;
 
 public class ReadOnlyManyCommand<K, V, R> extends AbstractTopologyAffectedCommand implements LocalCommand {
    public static final int COMMAND_ID = 63;
@@ -25,22 +30,46 @@ public class ReadOnlyManyCommand<K, V, R> extends AbstractTopologyAffectedComman
    protected Collection<? extends K> keys;
    protected Function<ReadEntryView<K, V>, R> f;
    protected Params params;
+   private EncodingClasses encodingClasses;
+   protected transient CacheEncoders cacheEncoders = new CacheEncoders();
 
-   public ReadOnlyManyCommand(Collection<? extends K> keys, Function<ReadEntryView<K, V>, R> f, Params params) {
+   public ReadOnlyManyCommand(Collection<? extends K> keys,
+                              Function<ReadEntryView<K, V>, R> f,
+                              Params params,
+                              EncodingClasses encodingClasses,
+                              ComponentRegistry componentRegistry) {
       this.keys = keys;
       this.f = f;
       this.params = params;
+      this.encodingClasses = encodingClasses;
       this.setFlagsBitSet(params.toFlagsBitSet());
+      init(componentRegistry);
    }
 
    public ReadOnlyManyCommand() {
    }
 
-   public ReadOnlyManyCommand(ReadOnlyManyCommand c) {
+   public ReadOnlyManyCommand(ReadOnlyManyCommand c, ComponentRegistry componentRegistry) {
       this.keys = c.keys;
       this.f = c.f;
       this.params = c.params;
       this.setFlagsBitSet(c.getFlagsBitSet());
+      this.encodingClasses = c.encodingClasses;
+      init(componentRegistry);
+   }
+
+   public void init(ComponentRegistry componentRegistry) {
+      if (encodingClasses != null) {
+         componentRegistry.wireDependencies(this);
+      }
+      if (encodingClasses != null) {
+         componentRegistry.wireDependencies(this);
+      }
+   }
+
+   @Inject
+   public void injectDependencies(EncoderRegistry encoderRegistry) {
+      cacheEncoders.grabEncodersFromRegistry(encoderRegistry, encodingClasses);
    }
 
    public Collection<? extends K> getKeys() {
@@ -76,6 +105,7 @@ public class ReadOnlyManyCommand<K, V, R> extends AbstractTopologyAffectedComman
       MarshallUtil.marshallCollection(keys, output);
       output.writeObject(f);
       Params.writeObject(output, params);
+      output.writeObject(encodingClasses);
    }
 
    @Override
@@ -84,6 +114,7 @@ public class ReadOnlyManyCommand<K, V, R> extends AbstractTopologyAffectedComman
       this.f = (Function<ReadEntryView<K, V>, R>) input.readObject();
       this.params = Params.readObject(input);
       this.setFlagsBitSet(params.toFlagsBitSet());
+      encodingClasses = (EncodingClasses) input.readObject();
    }
 
    @Override
@@ -92,8 +123,8 @@ public class ReadOnlyManyCommand<K, V, R> extends AbstractTopologyAffectedComman
       ArrayList<R> retvals = new ArrayList<R>(keys.size());
       for (K k : keys) {
          CacheEntry<K, V> me = lookupCacheEntry(ctx, k);
-         R ret = f.apply(me.isNull() ? EntryViews.noValue(k) : EntryViews.readOnly(me));
-         retvals.add(snapshot(ret));
+         R ret = f.apply(me.isNull() ? EntryViews.noValue(k, cacheEncoders) : EntryViews.readOnly(me, cacheEncoders));
+         retvals.add(snapshot(ret, cacheEncoders));
       }
       return retvals.stream();
    }
@@ -115,8 +146,8 @@ public class ReadOnlyManyCommand<K, V, R> extends AbstractTopologyAffectedComman
    @Override
    public String toString() {
       return "ReadOnlyManyCommand{" +
-         "keys=" + keys +
-         ", f=" + f +
-         '}';
+            "keys=" + keys +
+            ", f=" + f +
+            '}';
    }
 }

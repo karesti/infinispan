@@ -1,7 +1,5 @@
 package org.infinispan.interceptors.distribution;
 
-import static java.lang.String.format;
-
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
@@ -46,7 +44,6 @@ import org.infinispan.commands.write.RemoveCommand;
 import org.infinispan.commands.write.ReplaceCommand;
 import org.infinispan.commands.write.ValueMatcher;
 import org.infinispan.commands.write.WriteCommand;
-import org.infinispan.functional.EntryView;
 import org.infinispan.container.entries.CacheEntry;
 import org.infinispan.container.entries.MVCCEntry;
 import org.infinispan.container.versioning.EntryVersionsMap;
@@ -55,7 +52,9 @@ import org.infinispan.context.impl.FlagBitSets;
 import org.infinispan.context.impl.LocalTxInvocationContext;
 import org.infinispan.context.impl.TxInvocationContext;
 import org.infinispan.distribution.LocalizedCacheTopology;
+import org.infinispan.factories.ComponentRegistry;
 import org.infinispan.factories.annotations.Inject;
+import org.infinispan.functional.EntryView;
 import org.infinispan.functional.impl.EntryViews;
 import org.infinispan.partitionhandling.impl.PartitionHandlingManager;
 import org.infinispan.remoting.inboundhandler.DeliverOrder;
@@ -86,14 +85,16 @@ public class TxDistributionInterceptor extends BaseDistributionInterceptor {
    private static final long SKIP_REMOTE_FLAGS = FlagBitSets.CACHE_MODE_LOCAL | FlagBitSets.SKIP_REMOTE_LOOKUP;
 
    private PartitionHandlingManager partitionHandlingManager;
+   private ComponentRegistry componentRegistry;
 
    private final TxReadOnlyManyHelper txReadOnlyManyHelper = new TxReadOnlyManyHelper();
    private final ReadWriteManyHelper readWriteManyHelper = new ReadWriteManyHelper();
    private final ReadWriteManyEntriesHelper readWriteManyEntriesHelper = new ReadWriteManyEntriesHelper();
 
    @Inject
-   public void inject(PartitionHandlingManager partitionHandlingManager) {
+   public void inject(PartitionHandlingManager partitionHandlingManager, ComponentRegistry componentRegistry) {
       this.partitionHandlingManager = partitionHandlingManager;
+      this.componentRegistry = componentRegistry;
    }
 
    @Override
@@ -182,7 +183,7 @@ public class TxDistributionInterceptor extends BaseDistributionInterceptor {
 
    @Override
    public Object visitWriteOnlyManyEntriesCommand(InvocationContext ctx, WriteOnlyManyEntriesCommand command) throws Throwable {
-      return handleTxWriteManyEntriesCommand(ctx, command, command.getEntries(), (c, entries) -> new WriteOnlyManyEntriesCommand(c).withEntries(entries));
+      return handleTxWriteManyEntriesCommand(ctx, command, command.getEntries(), (c, entries) -> new WriteOnlyManyEntriesCommand(c, componentRegistry).withEntries(entries));
    }
 
    @Override
@@ -192,7 +193,7 @@ public class TxDistributionInterceptor extends BaseDistributionInterceptor {
 
    @Override
    public Object visitWriteOnlyManyCommand(InvocationContext ctx, WriteOnlyManyCommand command) throws Throwable {
-      return handleTxWriteManyCommand(ctx, command, command.getAffectedKeys(), (c, keys) -> new WriteOnlyManyCommand(c).withKeys(keys));
+      return handleTxWriteManyCommand(ctx, command, command.getAffectedKeys(), (c, keys) -> new WriteOnlyManyCommand(c, componentRegistry).withKeys(keys));
    }
 
    @Override
@@ -210,7 +211,7 @@ public class TxDistributionInterceptor extends BaseDistributionInterceptor {
          return handleFunctionalReadManyCommand(ctx, command, readWriteManyEntriesHelper);
       } else {
          return handleTxWriteManyEntriesCommand(ctx, command, command.getEntries(),
-               (c, entries) -> new ReadWriteManyEntriesCommand<>(c).withEntries(entries));
+               (c, entries) -> new ReadWriteManyEntriesCommand<>(c, componentRegistry).withEntries(entries));
       }
    }
 
@@ -432,7 +433,7 @@ public class TxDistributionInterceptor extends BaseDistributionInterceptor {
 
                List<Mutation> mutationsOnKey = getMutationsOnKey((TxInvocationContext) ctx, key);
                mutationsOnKey.add(command.toMutation(key));
-               TxReadOnlyKeyCommand remoteRead = new TxReadOnlyKeyCommand(key, mutationsOnKey);
+               TxReadOnlyKeyCommand remoteRead = new TxReadOnlyKeyCommand(key, mutationsOnKey, componentRegistry);
 
                return asyncValue(rpcManager.invokeRemotelyAsync(owners, remoteRead, getStaggeredOptions(owners.size())).thenApply(responses -> {
                   for (Response r : responses.values()) {
@@ -490,7 +491,7 @@ public class TxDistributionInterceptor extends BaseDistributionInterceptor {
       if (!ctx.isInTxScope()) {
          return command;
       }
-      return new TxReadOnlyKeyCommand(command, getMutationsOnKey((TxInvocationContext) ctx, command.getKey()));
+      return new TxReadOnlyKeyCommand(command, getMutationsOnKey((TxInvocationContext) ctx, command.getKey()), componentRegistry);
    }
 
    @Override
@@ -600,7 +601,7 @@ public class TxDistributionInterceptor extends BaseDistributionInterceptor {
       public ReplicableCommand copyForRemote(ReadOnlyManyCommand command, List<Object> keys, InvocationContext ctx) {
          List<List<Mutation>> mutations = getMutations(ctx, keys);
          if (mutations == null) {
-            return new ReadOnlyManyCommand<>(command).withKeys(keys);
+            return new ReadOnlyManyCommand<>(command, componentRegistry).withKeys(keys);
          } else {
             return new TxReadOnlyManyCommand(command, mutations).withKeys(keys);
          }
@@ -628,7 +629,7 @@ public class TxDistributionInterceptor extends BaseDistributionInterceptor {
                list.add(mutation);
             }
          }
-         return new TxReadOnlyManyCommand(keys, mutations);
+         return new TxReadOnlyManyCommand(keys, mutations, componentRegistry);
       }
 
       @Override
@@ -653,14 +654,14 @@ public class TxDistributionInterceptor extends BaseDistributionInterceptor {
    private class ReadWriteManyHelper extends BaseFunctionalWriteHelper<ReadWriteManyCommand> {
       @Override
       public ReadWriteManyCommand copyForLocal(ReadWriteManyCommand command, List<Object> keys) {
-         return new ReadWriteManyCommand(command).withKeys(keys);
+         return new ReadWriteManyCommand(command, componentRegistry).withKeys(keys);
       }
    }
 
    private class ReadWriteManyEntriesHelper extends BaseFunctionalWriteHelper<ReadWriteManyEntriesCommand> {
       @Override
       public ReadWriteManyEntriesCommand copyForLocal(ReadWriteManyEntriesCommand command, List<Object> keys) {
-         return new ReadWriteManyEntriesCommand(command).withEntries(filterEntries(command.getEntries(), keys));
+         return new ReadWriteManyEntriesCommand(command, componentRegistry).withEntries(filterEntries(command.getEntries(), keys));
       }
 
       private  <K, V> Map<K, V> filterEntries(Map<K, V> originalEntries, List<K> keys) {

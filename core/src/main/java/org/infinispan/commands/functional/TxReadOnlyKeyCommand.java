@@ -8,10 +8,12 @@ import java.io.ObjectOutput;
 import java.util.ArrayList;
 import java.util.List;
 
-import org.infinispan.functional.EntryView;
+import org.infinispan.cache.impl.CacheEncoders;
 import org.infinispan.commons.marshall.MarshallUtil;
 import org.infinispan.container.entries.MVCCEntry;
 import org.infinispan.context.InvocationContext;
+import org.infinispan.factories.ComponentRegistry;
+import org.infinispan.functional.EntryView;
 import org.infinispan.functional.impl.EntryViews;
 import org.infinispan.functional.impl.Params;
 
@@ -23,13 +25,13 @@ public class TxReadOnlyKeyCommand<K, V, R> extends ReadOnlyKeyCommand<K, V, R> {
    public TxReadOnlyKeyCommand() {
    }
 
-   public TxReadOnlyKeyCommand(Object key, List<Mutation<K, V, ?>> mutations) {
-      super(key, null, Params.create());
+   public TxReadOnlyKeyCommand(Object key, List<Mutation<K, V, ?>> mutations, ComponentRegistry componentRegistry) {
+      super(key, null, Params.create(), null, componentRegistry);
       this.mutations = mutations;
    }
 
-   public TxReadOnlyKeyCommand(ReadOnlyKeyCommand other, List<Mutation<K, V, ?>> mutations) {
-      super(other.getKey(), other.f, Params.create());
+   public TxReadOnlyKeyCommand(ReadOnlyKeyCommand other, List<Mutation<K, V, ?>> mutations, ComponentRegistry componentRegistry) {
+      super(other.getKey(), other.f, Params.create(), null, componentRegistry);
       this.mutations = mutations;
    }
 
@@ -65,7 +67,7 @@ public class TxReadOnlyKeyCommand<K, V, R> extends ReadOnlyKeyCommand<K, V, R> {
       if (f != null) {
          ret = f.apply(rw);
       }
-      return snapshot(ret);
+      return snapshot(ret, new CacheEncoders());
    }
 
    @Override

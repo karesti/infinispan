@@ -8,18 +8,21 @@ import java.io.ObjectInput;
 import java.io.ObjectOutput;
 import java.util.function.Function;
 
+import org.infinispan.cache.impl.EncodingClasses;
 import org.infinispan.commands.CommandInvocationId;
 import org.infinispan.commands.Visitor;
-import org.infinispan.commands.functional.functions.InjectableComponent;
+import org.infinispan.commands.functional.functions.InjectableWrappper;
 import org.infinispan.commands.write.ValueMatcher;
 import org.infinispan.commons.marshall.MarshallUtil;
 import org.infinispan.container.entries.CacheEntry;
 import org.infinispan.context.InvocationContext;
 import org.infinispan.context.impl.FlagBitSets;
 import org.infinispan.factories.ComponentRegistry;
+import org.infinispan.factories.annotations.Inject;
 import org.infinispan.functional.EntryView.ReadWriteEntryView;
 import org.infinispan.functional.impl.EntryViews;
 import org.infinispan.functional.impl.Params;
+import org.infinispan.marshall.core.EncoderRegistry;
 
 // TODO: the command does not carry previous values to backup, so it can cause
 // the values on primary and backup owners to diverge in case of topology change
@@ -31,10 +34,11 @@ public final class ReadWriteKeyCommand<K, V, R> extends AbstractWriteKeyCommand<
 
    public ReadWriteKeyCommand(K key, Function<ReadWriteEntryView<K, V>, R> f,
                               CommandInvocationId id, ValueMatcher valueMatcher, Params params,
+                              EncodingClasses encodingClasses,
                               ComponentRegistry componentRegistry) {
-      super(key, valueMatcher, id, params);
+      super(key, valueMatcher, id, params, encodingClasses);
       this.f = f;
-      this.init(componentRegistry);
+      init(componentRegistry);
    }
 
    public ReadWriteKeyCommand() {
@@ -46,6 +50,11 @@ public final class ReadWriteKeyCommand<K, V, R> extends AbstractWriteKeyCommand<
       return COMMAND_ID;
    }
 
+   @Inject
+   public void injectDependencies(EncoderRegistry encoderRegistry) {
+      cacheEncoders.grabEncodersFromRegistry(encoderRegistry, encodingClasses);
+   }
+
    @Override
    public void writeTo(ObjectOutput output) throws IOException {
       output.writeObject(key);
@@ -54,6 +63,7 @@ public final class ReadWriteKeyCommand<K, V, R> extends AbstractWriteKeyCommand<
       Params.writeObject(output, params);
       output.writeLong(FlagBitSets.copyWithoutRemotableFlags(getFlagsBitSet()));
       CommandInvocationId.writeTo(output, commandInvocationId);
+      output.writeObject(encodingClasses);
    }
 
    @Override
@@ -64,6 +74,7 @@ public final class ReadWriteKeyCommand<K, V, R> extends AbstractWriteKeyCommand<
       params = Params.readObject(input);
       setFlagsBitSet(input.readLong());
       commandInvocationId = CommandInvocationId.readFrom(input);
+      encodingClasses = (EncodingClasses) input.readObject();
    }
 
    @Override
@@ -83,8 +94,16 @@ public final class ReadWriteKeyCommand<K, V, R> extends AbstractWriteKeyCommand<
 
       // Could be that the key is not local, 'null' is how this is signalled
       if (e == null) return null;
-      R ret = f.apply(EntryViews.readWrite(e));
-      return snapshot(ret);
+
+      R ret;
+      ReadWriteEntryView<K, V> entry = isEncoded() ?
+            EntryViews.readWrite(e, cacheEncoders) : EntryViews.readWrite(e);
+      ret = f.apply(entry);
+      return snapshot(ret, cacheEncoders);
+   }
+
+   private boolean isEncoded() {
+      return encodingClasses != null;
    }
 
    @Override
@@ -119,14 +138,12 @@ public final class ReadWriteKeyCommand<K, V, R> extends AbstractWriteKeyCommand<
             "}";
    }
 
-   public void init(ComponentRegistry componentRegistry) {
-      if (f instanceof InjectableComponent) {
-         ((InjectableComponent) f).inject(componentRegistry);
-      }
-   }
-
    @Override
-   public final boolean isReturnValueExpected() {
-      return true;
+   public void init(ComponentRegistry componentRegistry) {
+      if (encodingClasses != null) {
+         componentRegistry.wireDependencies(this);
+      }
+      if (f instanceof InjectableWrappper)
+         ((InjectableWrappper) f).inject(componentRegistry);
    }
 }

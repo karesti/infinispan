@@ -11,13 +11,18 @@ import java.util.List;
 import java.util.Map;
 import java.util.function.BiFunction;
 
+import org.infinispan.cache.impl.EncodingClasses;
 import org.infinispan.commands.CommandInvocationId;
 import org.infinispan.commands.Visitor;
-import org.infinispan.functional.EntryView.ReadWriteEntryView;
+import org.infinispan.commands.functional.functions.InjectableWrappper;
 import org.infinispan.container.entries.CacheEntry;
 import org.infinispan.context.InvocationContext;
+import org.infinispan.factories.ComponentRegistry;
+import org.infinispan.factories.annotations.Inject;
+import org.infinispan.functional.EntryView.ReadWriteEntryView;
 import org.infinispan.functional.impl.EntryViews;
 import org.infinispan.functional.impl.Params;
+import org.infinispan.marshall.core.EncoderRegistry;
 
 // TODO: the command does not carry previous values to backup, so it can cause
 // the values on primary and backup owners to diverge in case of topology change
@@ -31,16 +36,24 @@ public final class ReadWriteManyEntriesCommand<K, V, R> extends AbstractWriteMan
    private int topologyId = -1;
    boolean isForwarded = false;
 
-   public ReadWriteManyEntriesCommand(Map<? extends K, ? extends V> entries, BiFunction<V, ReadWriteEntryView<K, V>, R> f, Params params, CommandInvocationId commandInvocationId) {
-      super(commandInvocationId, params);
+   public ReadWriteManyEntriesCommand(Map<? extends K, ? extends V> entries,
+                                      BiFunction<V, ReadWriteEntryView<K, V>, R> f,
+                                      Params params,
+                                      CommandInvocationId commandInvocationId,
+                                      EncodingClasses encodingClasses,
+                                      ComponentRegistry componentRegistry) {
+      super(commandInvocationId, params, encodingClasses);
       this.entries = entries;
       this.f = f;
+      init(componentRegistry);
    }
 
-   public ReadWriteManyEntriesCommand(ReadWriteManyEntriesCommand command) {
+   public ReadWriteManyEntriesCommand(ReadWriteManyEntriesCommand command, ComponentRegistry componentRegistry) {
       super(command);
       this.entries = command.entries;
       this.f = command.f;
+      this.encodingClasses = command.encodingClasses;
+      init(componentRegistry);
    }
 
    public ReadWriteManyEntriesCommand() {
@@ -64,6 +77,11 @@ public final class ReadWriteManyEntriesCommand<K, V, R> extends AbstractWriteMan
       return COMMAND_ID;
    }
 
+   @Inject
+   public void injectDependencies(EncoderRegistry encoderRegistry) {
+      cacheEncoders.grabEncodersFromRegistry(encoderRegistry, encodingClasses);
+   }
+
    @Override
    public void writeTo(ObjectOutput output) throws IOException {
       CommandInvocationId.writeTo(output, commandInvocationId);
@@ -73,6 +91,7 @@ public final class ReadWriteManyEntriesCommand<K, V, R> extends AbstractWriteMan
       Params.writeObject(output, params);
       output.writeInt(topologyId);
       output.writeLong(flags);
+      output.writeObject(encodingClasses);
    }
 
    @Override
@@ -84,6 +103,7 @@ public final class ReadWriteManyEntriesCommand<K, V, R> extends AbstractWriteMan
       params = Params.readObject(input);
       topologyId = input.readInt();
       flags = input.readLong();
+      encodingClasses = (EncodingClasses) input.readObject();
    }
 
    public boolean isForwarded() {
@@ -123,8 +143,8 @@ public final class ReadWriteManyEntriesCommand<K, V, R> extends AbstractWriteMan
          if (entry == null) {
             throw new IllegalStateException();
          }
-         R r = f.apply(v, EntryViews.readWrite(entry));
-         returns.add(snapshot(r));
+         R r = f.apply(v, EntryViews.readWrite(entry, cacheEncoders));
+         returns.add(snapshot(r, cacheEncoders));
       });
       return returns;
    }
@@ -167,5 +187,14 @@ public final class ReadWriteManyEntriesCommand<K, V, R> extends AbstractWriteMan
    @Override
    public Mutation<K, V, ?> toMutation(K key) {
       return new Mutations.ReadWriteWithValue(entries.get(key), f);
+   }
+
+   @Override
+   public void init(ComponentRegistry componentRegistry) {
+      if (encodingClasses != null) {
+         componentRegistry.wireDependencies(this);
+      }
+      if (f instanceof InjectableWrappper)
+         ((InjectableWrappper) f).inject(componentRegistry);
    }
 }

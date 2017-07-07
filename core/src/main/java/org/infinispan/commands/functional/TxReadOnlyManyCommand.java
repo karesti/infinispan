@@ -11,9 +11,10 @@ import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
 
-import org.infinispan.functional.EntryView;
 import org.infinispan.container.entries.MVCCEntry;
 import org.infinispan.context.InvocationContext;
+import org.infinispan.factories.ComponentRegistry;
+import org.infinispan.functional.EntryView;
 import org.infinispan.functional.impl.EntryViews;
 import org.infinispan.functional.impl.Params;
 
@@ -26,13 +27,13 @@ public class TxReadOnlyManyCommand<K, V, R> extends ReadOnlyManyCommand<K, V, R>
    public TxReadOnlyManyCommand() {
    }
 
-   public TxReadOnlyManyCommand(Collection<? extends K> keys, List<List<Mutation<K, V, ?>>> mutations) {
-      super(keys, null, Params.create());
+   public TxReadOnlyManyCommand(Collection<? extends K> keys, List<List<Mutation<K, V, ?>>> mutations, ComponentRegistry componentRegistry) {
+      super(keys, null, Params.create(), null, componentRegistry);
       this.mutations = mutations;
    }
 
    public TxReadOnlyManyCommand(ReadOnlyManyCommand c, List<List<Mutation<K, V, ?>>> mutations) {
-      super(c);
+      super(c, null);
       this.mutations = mutations;
    }
 
@@ -114,7 +115,7 @@ public class TxReadOnlyManyCommand<K, V, R> extends ReadOnlyManyCommand<K, V, R>
          if (f != null) {
             ret = f.apply(ro);
          }
-         retvals.add(snapshot((R) ret));
+         retvals.add(snapshot((R) ret, cacheEncoders));
       }
       return retvals.stream();
    }

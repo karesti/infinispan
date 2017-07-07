@@ -60,8 +60,8 @@ import org.infinispan.remoting.rpc.ResponseMode;
 import org.infinispan.remoting.rpc.RpcManager;
 import org.infinispan.remoting.rpc.RpcOptions;
 import org.infinispan.remoting.transport.Address;
-import org.infinispan.statetransfer.OutdatedTopologyException;
 import org.infinispan.statetransfer.AllOwnersLostException;
+import org.infinispan.statetransfer.OutdatedTopologyException;
 import org.infinispan.transaction.xa.GlobalTransaction;
 import org.infinispan.util.concurrent.CompletableFutures;
 import org.infinispan.util.logging.Log;
@@ -919,12 +919,12 @@ public abstract class BaseDistributionInterceptor extends ClusteringInterceptor 
 
       @Override
       public ReadOnlyManyCommand copyForLocal(ReadOnlyManyCommand command, List<Object> keys) {
-         return new ReadOnlyManyCommand(command).withKeys(keys);
+         return new ReadOnlyManyCommand(command, componentRegistry).withKeys(keys);
       }
 
       @Override
       public ReplicableCommand copyForRemote(ReadOnlyManyCommand command, List<Object> keys, InvocationContext ctx) {
-         return new ReadOnlyManyCommand(command).withKeys(keys);
+         return new ReadOnlyManyCommand(command, componentRegistry).withKeys(keys);
       }
 
       @Override

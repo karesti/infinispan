@@ -1,14 +1,13 @@
 package org.infinispan.compat;
 
 import static org.infinispan.commons.dataconversion.EncodingUtils.fromStorage;
-import static org.infinispan.commons.dataconversion.EncodingUtils.toStorage;
 
 import java.io.IOException;
 import java.io.ObjectInput;
 import java.io.ObjectOutput;
 import java.util.Collections;
 import java.util.Set;
-import java.util.function.BiFunction;
+import java.util.function.BiConsumer;
 
 import org.infinispan.cache.impl.EncodingClasses;
 import org.infinispan.commons.dataconversion.Encoder;
@@ -18,7 +17,7 @@ import org.infinispan.commons.marshall.Ids;
 import org.infinispan.factories.annotations.Inject;
 import org.infinispan.marshall.core.EncoderRegistry;
 
-public class BiFunctionMapper implements BiFunction {
+public class BiConsumerMapper implements BiConsumer {
 
    private EncodingClasses encodingClasses;
 
@@ -26,7 +25,7 @@ public class BiFunctionMapper implements BiFunction {
    private Encoder valueEncoder;
    private Wrapper keyWrapper;
    private Wrapper valueWrapper;
-   private final BiFunction biFunction;
+   private final BiConsumer biConsumer;
 
    @Inject
    public void injectDependencies(EncoderRegistry encoderRegistry) {
@@ -36,25 +35,24 @@ public class BiFunctionMapper implements BiFunction {
       this.valueWrapper = encoderRegistry.getWrapper(encodingClasses.getValueWrapperClass());
    }
 
-   public BiFunctionMapper(BiFunction remappingFunction,
+   public BiConsumerMapper(BiConsumer biConsumer,
                            EncodingClasses encodingClasses) {
-      this.biFunction = remappingFunction;
+      this.biConsumer = biConsumer;
       this.encodingClasses = encodingClasses;
    }
 
    @Override
-   public Object apply(Object k, Object v) {
+   public void accept(Object k, Object v) {
       Object key = fromStorage(k, keyEncoder, keyWrapper);
       Object value = fromStorage(v, valueEncoder, valueWrapper);
-      Object result = biFunction.apply(key, value);
-      return result == null ? result : toStorage(result, valueEncoder, valueWrapper);
+      biConsumer.accept(key, value);
    }
 
-   public static class Externalizer implements AdvancedExternalizer<BiFunctionMapper> {
+   public static class Externalizer implements AdvancedExternalizer<BiConsumerMapper> {
 
       @Override
-      public Set<Class<? extends BiFunctionMapper>> getTypeClasses() {
-         return Collections.singleton(BiFunctionMapper.class);
+      public Set<Class<? extends BiConsumerMapper>> getTypeClasses() {
+         return Collections.singleton(BiConsumerMapper.class);
       }
 
       @Override
@@ -63,14 +61,14 @@ public class BiFunctionMapper implements BiFunction {
       }
 
       @Override
-      public void writeObject(ObjectOutput output, BiFunctionMapper object) throws IOException {
-         output.writeObject(object.biFunction);
+      public void writeObject(ObjectOutput output, BiConsumerMapper object) throws IOException {
+         output.writeObject(object.biConsumer);
          output.writeObject(object.encodingClasses);
       }
 
       @Override
-      public BiFunctionMapper readObject(ObjectInput input) throws IOException, ClassNotFoundException {
-         return new BiFunctionMapper((BiFunction) input.readObject(),
+      public BiConsumerMapper readObject(ObjectInput input) throws IOException, ClassNotFoundException {
+         return new BiConsumerMapper((BiConsumer) input.readObject(),
                (EncodingClasses) input.readObject());
       }
    }

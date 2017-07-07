@@ -686,23 +686,23 @@ public class CacheImpl<K, V> implements AdvancedCache<K, V> {
 
    @Override
    public AdvancedCache<K, V> withEncoding(Class<? extends Encoder> encoderClass) {
-      return new EncoderCache<>(this, encoderClass, encoderClass, keyWrapperClass, valueWrapperClass);
+      return new EncoderCache<>(this, new EncodingClasses(encoderClass, encoderClass, keyWrapperClass, valueWrapperClass));
    }
 
 
    @Override
    public AdvancedCache<K, V> withEncoding(Class<? extends Encoder> keyEncoderClass, Class<? extends Encoder> valueEncoderClass) {
-      return new EncoderCache<>(this, keyEncoderClass, valueEncoderClass, keyWrapperClass, valueWrapperClass);
+      return new EncoderCache<>(this,  new EncodingClasses(keyEncoderClass, valueEncoderClass, keyWrapperClass, valueWrapperClass));
    }
 
    @Override
    public AdvancedCache<K, V> withWrapping(Class<? extends Wrapper> wrapperClass) {
-      return new EncoderCache<>(this, keyEncoderClass, valueEncoderClass, wrapperClass, wrapperClass);
+      return new EncoderCache<>(this,  new EncodingClasses(keyEncoderClass, valueEncoderClass, wrapperClass, wrapperClass));
    }
 
    @Override
    public AdvancedCache<K, V> withWrapping(Class<? extends Wrapper> keyWrapperClass, Class<? extends Wrapper> valueWrapperClass) {
-      return new EncoderCache<>(this, keyEncoderClass, valueEncoderClass, keyWrapperClass, valueWrapperClass);
+      return new EncoderCache<>(this,  new EncodingClasses(keyEncoderClass, valueEncoderClass, keyWrapperClass, valueWrapperClass));
    }
 
    @Override
@@ -990,7 +990,7 @@ public class CacheImpl<K, V> implements AdvancedCache<K, V> {
 
    private ReadWriteKeyValueCommand<K, Object, Object> createApplyDelta(K deltaAwareValueKey, Delta delta, long explicitFlags, InvocationContext ctx) {
       ReadWriteKeyValueCommand<K, Object, Object> command = commandsFactory.buildReadWriteKeyValueCommand(
-            deltaAwareValueKey, delta,new ApplyDelta<>(marshaller), Params.create());
+            deltaAwareValueKey, delta,new ApplyDelta<>(marshaller), Params.create(), null);
       command.setFlagsBitSet(explicitFlags);
       if (ctx.getLockOwner() == null) {
          ctx.setLockOwner(command.getKeyLockOwner());

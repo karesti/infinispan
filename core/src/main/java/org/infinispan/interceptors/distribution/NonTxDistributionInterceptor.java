@@ -601,18 +601,18 @@ public class NonTxDistributionInterceptor extends BaseDistributionInterceptor {
    private class ReadWriteManyEntriesHelper extends WriteManyCommandHelper<ReadWriteManyEntriesCommand, Map<Object, Object>, Entry<Object, Object>> {
       @Override
       public ReadWriteManyEntriesCommand copyForLocal(ReadWriteManyEntriesCommand cmd, Map<Object, Object> entries) {
-         return new ReadWriteManyEntriesCommand(cmd).withEntries(entries);
+         return new ReadWriteManyEntriesCommand(cmd, componentRegistry).withEntries(entries);
       }
 
       @Override
       public ReadWriteManyEntriesCommand copyForPrimary(ReadWriteManyEntriesCommand cmd, ConsistentHash ch, Set<Integer> segments) {
-         return new ReadWriteManyEntriesCommand(cmd)
+         return new ReadWriteManyEntriesCommand(cmd, componentRegistry)
                .withEntries(new ReadOnlySegmentAwareMap<>(cmd.getEntries(), ch, segments));
       }
 
       @Override
       public ReadWriteManyEntriesCommand copyForBackup(ReadWriteManyEntriesCommand cmd, ConsistentHash ch, Set<Integer> segments) {
-         ReadWriteManyEntriesCommand copy = new ReadWriteManyEntriesCommand(cmd)
+         ReadWriteManyEntriesCommand copy = new ReadWriteManyEntriesCommand(cmd, componentRegistry)
                .withEntries(new ReadOnlySegmentAwareMap(cmd.getEntries(), ch, segments));
          copy.setForwarded(true);
          return copy;
@@ -657,17 +657,17 @@ public class NonTxDistributionInterceptor extends BaseDistributionInterceptor {
    private class ReadWriteManyHelper extends WriteManyCommandHelper<ReadWriteManyCommand, Collection<Object>, Object> {
       @Override
       public ReadWriteManyCommand copyForLocal(ReadWriteManyCommand cmd, Collection<Object> keys) {
-         return new ReadWriteManyCommand(cmd).withKeys(keys);
+         return new ReadWriteManyCommand(cmd, componentRegistry).withKeys(keys);
       }
 
       @Override
       public ReadWriteManyCommand copyForPrimary(ReadWriteManyCommand cmd, ConsistentHash ch, Set<Integer> segments) {
-         return new ReadWriteManyCommand(cmd).withKeys(new ReadOnlySegmentAwareCollection(cmd.getAffectedKeys(), ch, segments));
+         return new ReadWriteManyCommand(cmd, componentRegistry).withKeys(new ReadOnlySegmentAwareCollection(cmd.getAffectedKeys(), ch, segments));
       }
 
       @Override
       public ReadWriteManyCommand copyForBackup(ReadWriteManyCommand cmd, ConsistentHash ch, Set<Integer> segments) {
-         ReadWriteManyCommand copy = new ReadWriteManyCommand(cmd).withKeys(
+         ReadWriteManyCommand copy = new ReadWriteManyCommand(cmd, componentRegistry).withKeys(
                new ReadOnlySegmentAwareCollection(cmd.getAffectedKeys(), ch, segments));
          copy.setForwarded(true);
          return copy;
@@ -713,18 +713,18 @@ public class NonTxDistributionInterceptor extends BaseDistributionInterceptor {
 
       @Override
       public WriteOnlyManyEntriesCommand copyForLocal(WriteOnlyManyEntriesCommand cmd, Map<Object, Object> entries) {
-         return new WriteOnlyManyEntriesCommand(cmd).withEntries(entries);
+         return new WriteOnlyManyEntriesCommand(cmd, componentRegistry).withEntries(entries);
       }
 
       @Override
       public WriteOnlyManyEntriesCommand copyForPrimary(WriteOnlyManyEntriesCommand cmd, ConsistentHash ch, Set<Integer> segments) {
-         return new WriteOnlyManyEntriesCommand(cmd)
+         return new WriteOnlyManyEntriesCommand(cmd, componentRegistry)
                .withEntries(new ReadOnlySegmentAwareMap<>(cmd.getEntries(), ch, segments));
       }
 
       @Override
       public WriteOnlyManyEntriesCommand copyForBackup(WriteOnlyManyEntriesCommand cmd, ConsistentHash ch, Set<Integer> segments) {
-         WriteOnlyManyEntriesCommand copy = new WriteOnlyManyEntriesCommand(cmd)
+         WriteOnlyManyEntriesCommand copy = new WriteOnlyManyEntriesCommand(cmd, componentRegistry)
                .withEntries(new ReadOnlySegmentAwareMap(cmd.getEntries(), ch, segments));
          copy.setForwarded(true);
          return copy;
@@ -769,18 +769,18 @@ public class NonTxDistributionInterceptor extends BaseDistributionInterceptor {
    private class WriteOnlyManyHelper extends WriteManyCommandHelper<WriteOnlyManyCommand, Collection<Object>, Object> {
       @Override
       public WriteOnlyManyCommand copyForLocal(WriteOnlyManyCommand cmd, Collection<Object> keys) {
-         return new WriteOnlyManyCommand(cmd).withKeys(keys);
+         return new WriteOnlyManyCommand(cmd, componentRegistry).withKeys(keys);
       }
 
       @Override
       public WriteOnlyManyCommand copyForPrimary(WriteOnlyManyCommand cmd, ConsistentHash ch, Set<Integer> segments) {
-         return new WriteOnlyManyCommand(cmd)
+         return new WriteOnlyManyCommand(cmd, componentRegistry)
                .withKeys(new ReadOnlySegmentAwareCollection(cmd.getAffectedKeys(), ch, segments));
       }
 
       @Override
       public WriteOnlyManyCommand copyForBackup(WriteOnlyManyCommand cmd, ConsistentHash ch, Set<Integer> segments) {
-         WriteOnlyManyCommand copy = new WriteOnlyManyCommand(cmd)
+         WriteOnlyManyCommand copy = new WriteOnlyManyCommand(cmd, componentRegistry)
                .withKeys(new ReadOnlySegmentAwareCollection(cmd.getAffectedKeys(), ch, segments));
          copy.setForwarded(true);
          return copy;

@@ -1,9 +1,12 @@
 package org.infinispan.commands.functional;
 
+import org.infinispan.cache.impl.CacheEncoders;
+import org.infinispan.cache.impl.EncodingClasses;
 import org.infinispan.commands.CommandInvocationId;
 import org.infinispan.commands.write.ValueMatcher;
 import org.infinispan.commands.write.WriteCommand;
 import org.infinispan.context.impl.FlagBitSets;
+import org.infinispan.factories.ComponentRegistry;
 import org.infinispan.functional.impl.Params;
 import org.infinispan.util.concurrent.locks.RemoteLockCommand;
 
@@ -17,10 +20,28 @@ public abstract class AbstractWriteManyCommand<K, V> implements WriteCommand, Fu
    // and make sure that ClusteringDependentLogic checks them.
    long flags;
 
-   protected AbstractWriteManyCommand(CommandInvocationId commandInvocationId, Params params) {
+   EncodingClasses encodingClasses;
+
+   CacheEncoders cacheEncoders = new CacheEncoders();
+
+   protected AbstractWriteManyCommand(CommandInvocationId commandInvocationId,
+                                      Params params) {
       this.commandInvocationId = commandInvocationId;
       this.params = params;
       this.flags = params.toFlagsBitSet();
+   }
+
+   protected AbstractWriteManyCommand(CommandInvocationId commandInvocationId,
+                                      Params params,
+                                      EncodingClasses encodingClasses) {
+      this.commandInvocationId = commandInvocationId;
+      this.params = params;
+      this.flags = params.toFlagsBitSet();
+      this.encodingClasses = encodingClasses;
+   }
+
+   public void init(ComponentRegistry componentRegistry) {
+      componentRegistry.wireDependencies(this);
    }
 
    protected <K, V> AbstractWriteManyCommand(AbstractWriteManyCommand<K, V> command) {

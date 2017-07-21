@@ -12,6 +12,7 @@ import java.util.concurrent.CompletableFuture;
 import java.util.function.BiFunction;
 
 import org.infinispan.cache.impl.CacheEncoders;
+import org.infinispan.cache.impl.EncodingClasses;
 import org.infinispan.commands.FlagAffectedCommand;
 import org.infinispan.commands.ReplicableCommand;
 import org.infinispan.commands.TopologyAffectedCommand;
@@ -57,6 +58,7 @@ import org.infinispan.factories.ComponentRegistry;
 import org.infinispan.factories.annotations.Inject;
 import org.infinispan.functional.EntryView;
 import org.infinispan.functional.impl.EntryViews;
+import org.infinispan.marshall.core.EncoderRegistry;
 import org.infinispan.partitionhandling.impl.PartitionHandlingManager;
 import org.infinispan.remoting.inboundhandler.DeliverOrder;
 import org.infinispan.remoting.responses.CacheNotFoundResponse;
@@ -87,15 +89,17 @@ public class TxDistributionInterceptor extends BaseDistributionInterceptor {
 
    private PartitionHandlingManager partitionHandlingManager;
    private ComponentRegistry componentRegistry;
+   private EncoderRegistry encoderRegistry;
    private final TxReadOnlyManyHelper txReadOnlyManyHelper = new TxReadOnlyManyHelper();
 
    private final ReadWriteManyHelper readWriteManyHelper = new ReadWriteManyHelper();
    private final ReadWriteManyEntriesHelper readWriteManyEntriesHelper = new ReadWriteManyEntriesHelper();
 
    @Inject
-   public void inject(PartitionHandlingManager partitionHandlingManager, ComponentRegistry componentRegistry) {
+   public void inject(PartitionHandlingManager partitionHandlingManager, ComponentRegistry componentRegistry, EncoderRegistry encoderRegistry) {
       this.partitionHandlingManager = partitionHandlingManager;
       this.componentRegistry = componentRegistry;
+      this.encoderRegistry = encoderRegistry;
    }
 
    @Override
@@ -237,7 +241,8 @@ public class TxDistributionInterceptor extends BaseDistributionInterceptor {
          LocalizedCacheTopology cacheTopology =
                dm.getCacheTopology();
          Collection<Address> writeOwners = cacheTopology.getWriteOwners(localTxCtx.getAffectedKeys());
-         localTx.locksAcquired(writeOwners);Collection<Address> recipients = isReplicated ? null : localTx.getCommitNodes(writeOwners, cacheTopology);
+         localTx.locksAcquired(writeOwners);
+         Collection<Address> recipients = isReplicated ? null : localTx.getCommitNodes(writeOwners, cacheTopology);
          CompletableFuture<Object> remotePrepare =
                prepareOnAffectedNodes(localTxCtx, (PrepareCommand) rCommand, recipients);
          return asyncValue(remotePrepare);
@@ -291,8 +296,8 @@ public class TxDistributionInterceptor extends BaseDistributionInterceptor {
    }
 
    protected void checkTxCommandResponses(Map<Address, Response> responseMap,
-         TransactionBoundaryCommand command, TxInvocationContext<LocalTransaction> context,
-         Collection<Address> recipients) {
+                                          TransactionBoundaryCommand command, TxInvocationContext<LocalTransaction> context,
+                                          Collection<Address> recipients) {
       LocalizedCacheTopology cacheTopology = checkTopologyId(command);
       for (Map.Entry<Address, Response> e : responseMap.entrySet()) {
          Address recipient = e.getKey();
@@ -304,7 +309,8 @@ public class TxDistributionInterceptor extends BaseDistributionInterceptor {
                if (trace) log.tracef("Ignoring response from node not targeted %s", recipient);
             } else {
                if (checkCacheNotFoundResponseInPartitionHandling(command, context, recipients)) {
-                  if (trace) log.tracef("Cache not running on node %s, or the node is missing. It will be handled by the PartitionHandlingManager", recipient);
+                  if (trace)
+                     log.tracef("Cache not running on node %s, or the node is missing. It will be handled by the PartitionHandlingManager", recipient);
                   return;
                } else {
                   if (trace) log.tracef("Cache not running on node %s, or the node is missing", recipient);
@@ -319,7 +325,7 @@ public class TxDistributionInterceptor extends BaseDistributionInterceptor {
    }
 
    private boolean checkCacheNotFoundResponseInPartitionHandling(TransactionBoundaryCommand command,
-         TxInvocationContext<LocalTransaction> context, Collection<Address> recipients) {
+                                                                 TxInvocationContext<LocalTransaction> context, Collection<Address> recipients) {
       final GlobalTransaction globalTransaction = command.getGlobalTransaction();
       final Collection<Object> lockedKeys = context.getLockedKeys();
       if (command instanceof RollbackCommand) {
@@ -327,7 +333,7 @@ public class TxDistributionInterceptor extends BaseDistributionInterceptor {
       } else if (command instanceof PrepareCommand) {
          if (((PrepareCommand) command).isOnePhaseCommit()) {
             return partitionHandlingManager.addPartialCommit1PCTransaction(globalTransaction, recipients, lockedKeys,
-                                                                           Arrays.asList(((PrepareCommand) command).getModifications()));
+                  Arrays.asList(((PrepareCommand) command).getModifications()));
          }
       } else if (command instanceof CommitCommand) {
          EntryVersionsMap newVersion = null;
@@ -344,7 +350,7 @@ public class TxDistributionInterceptor extends BaseDistributionInterceptor {
     * time. If the operation didn't originate locally we won't do any replication either.
     */
    private Object handleTxWriteCommand(InvocationContext ctx, AbstractDataWriteCommand command,
-         Object key) throws Throwable {
+                                       Object key) throws Throwable {
       try {
          if (!ctx.isOriginLocal() && !dm.getCacheTopology().isWriteOwner(command.getKey())) {
             return null;
@@ -373,8 +379,8 @@ public class TxDistributionInterceptor extends BaseDistributionInterceptor {
    }
 
    protected <C extends TopologyAffectedCommand & FlagAffectedCommand, K, V> Object
-         handleTxWriteManyEntriesCommand(InvocationContext ctx, C command, Map<K, V> entries,
-                                  BiFunction<C, Map<K, V>, C> copyCommand) {
+   handleTxWriteManyEntriesCommand(InvocationContext ctx, C command, Map<K, V> entries,
+                                   BiFunction<C, Map<K, V>, C> copyCommand) {
       boolean ignorePreviousValue = command.hasAnyFlag(SKIP_REMOTE_FLAGS) || command.loadType() == VisitableCommand.LoadType.DONT_LOAD;
       Map<K, V> filtered = new HashMap<>(entries.size());
       Collection<CompletableFuture<?>> remoteGets = null;
@@ -425,7 +431,7 @@ public class TxDistributionInterceptor extends BaseDistributionInterceptor {
       if (ctx.isOriginLocal()) {
          CacheEntry entry = ctx.lookupEntry(key);
          if (entry == null) {
-            if (command.hasAnyFlag(SKIP_REMOTE_FLAGS)|| command.loadType() == VisitableCommand.LoadType.DONT_LOAD) {
+            if (command.hasAnyFlag(SKIP_REMOTE_FLAGS) || command.loadType() == VisitableCommand.LoadType.DONT_LOAD) {
                entryFactory.wrapExternalEntry(ctx, key, null, false, true);
                return invokeNext(ctx, command);
             } else {
@@ -507,11 +513,13 @@ public class TxDistributionInterceptor extends BaseDistributionInterceptor {
       if (mutationsOnKey.isEmpty()) {
          return cf;
       }
+      EncodingClasses encodingClasses = getEncodingClasses((TxInvocationContext) ctx);
       return cf.thenRun(() -> {
          entryFactory.wrapEntryForWriting(ctx, key, false, true);
          MVCCEntry cacheEntry = (MVCCEntry) ctx.lookupEntry(key);
          // TODO: ISPN-8090 support full cache encoding in tx cache
-         EntryView.ReadWriteEntryView readWriteEntryView = EntryViews.readWrite(cacheEntry, CacheEncoders.EMPTY);
+         CacheEncoders cacheEncoders = encodingClasses != null ? CacheEncoders.grabEncodersFromRegistry(encoderRegistry, encodingClasses) : CacheEncoders.EMPTY;
+         EntryView.ReadWriteEntryView readWriteEntryView = EntryViews.readWrite(cacheEntry, cacheEncoders);
          for (Mutation mutation : mutationsOnKey) {
             mutation.apply(readWriteEntryView);
             cacheEntry.updatePreviousValue();
@@ -528,13 +536,15 @@ public class TxDistributionInterceptor extends BaseDistributionInterceptor {
       if (mutations == null || mutations.isEmpty()) {
          return;
       }
+      EncodingClasses encodingClasses = getEncodingClasses((TxInvocationContext) ctx);
+      CacheEncoders cacheEncoders = encodingClasses != null ? CacheEncoders.grabEncodersFromRegistry(encoderRegistry, encodingClasses) : CacheEncoders.EMPTY;
       Iterator<?> keysIterator = remoteKeys.iterator();
       Iterator<List<Mutation>> mutationsIterator = mutations.iterator();
       for (; keysIterator.hasNext() && mutationsIterator.hasNext(); ) {
          Object key = keysIterator.next();
          entryFactory.wrapEntryForWriting(ctx, key, false, true);
          MVCCEntry cacheEntry = (MVCCEntry) ctx.lookupEntry(key);
-         EntryView.ReadWriteEntryView readWriteEntryView = EntryViews.readWrite(cacheEntry, CacheEncoders.EMPTY);
+         EntryView.ReadWriteEntryView readWriteEntryView = EntryViews.readWrite(cacheEntry, cacheEncoders);
          for (Mutation mutation : mutationsIterator.next()) {
             mutation.apply(readWriteEntryView);
             cacheEntry.updatePreviousValue();
@@ -564,6 +574,15 @@ public class TxDistributionInterceptor extends BaseDistributionInterceptor {
          }
       }
       return mutations;
+   }
+
+   private static EncodingClasses getEncodingClasses(TxInvocationContext ctx) {
+      for (WriteCommand write : ctx.getCacheTransaction().getModifications()) {
+         if (write instanceof FunctionalCommand) {
+            return ((FunctionalCommand) write).getEncodingClasses();
+         }
+      }
+      return null;
    }
 
    private static List<List<Mutation>> getMutations(InvocationContext ctx, List<?> keys) {
@@ -666,7 +685,7 @@ public class TxDistributionInterceptor extends BaseDistributionInterceptor {
          return new ReadWriteManyEntriesCommand(command).withEntries(filterEntries(command.getEntries(), keys));
       }
 
-      private  <K, V> Map<K, V> filterEntries(Map<K, V> originalEntries, List<K> keys) {
+      private <K, V> Map<K, V> filterEntries(Map<K, V> originalEntries, List<K> keys) {
          Map<K, V> entries = new HashMap<>(keys.size());
          for (K key : keys) {
             entries.put(key, originalEntries.get(key));

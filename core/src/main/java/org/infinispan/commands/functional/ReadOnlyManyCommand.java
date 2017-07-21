@@ -24,13 +24,13 @@ import org.infinispan.functional.impl.EntryViews;
 import org.infinispan.functional.impl.Params;
 import org.infinispan.marshall.core.EncoderRegistry;
 
-public class ReadOnlyManyCommand<K, V, R> extends AbstractTopologyAffectedCommand implements LocalCommand {
+public class ReadOnlyManyCommand<K, V, R> extends AbstractTopologyAffectedCommand implements LocalCommand, FunctionalCommand {
    public static final int COMMAND_ID = 63;
 
    protected Collection<? extends K> keys;
    protected Function<ReadEntryView<K, V>, R> f;
    protected Params params;
-   private EncodingClasses encodingClasses;
+   protected EncodingClasses encodingClasses;
    protected transient CacheEncoders cacheEncoders = CacheEncoders.EMPTY;
 
    public ReadOnlyManyCommand(Collection<? extends K> keys,
@@ -140,6 +140,17 @@ public class ReadOnlyManyCommand<K, V, R> extends AbstractTopologyAffectedComman
       return LoadType.OWNER;
    }
 
+   @Override
+   public Params getParams() {
+      return params;
+   }
+
+   @Override
+   public Mutation toMutation(Object key) {
+      throw new UnsupportedOperationException("ReadOnly command's don't mutate");
+   }
+
+   @Override
    public EncodingClasses getEncodingClasses() {
       return encodingClasses;
    }

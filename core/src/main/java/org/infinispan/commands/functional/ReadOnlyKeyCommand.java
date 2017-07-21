@@ -22,12 +22,12 @@ import org.infinispan.functional.impl.EntryViews;
 import org.infinispan.functional.impl.Params;
 import org.infinispan.marshall.core.EncoderRegistry;
 
-public class ReadOnlyKeyCommand<K, V, R> extends AbstractDataCommand {
+public class ReadOnlyKeyCommand<K, V, R> extends AbstractDataCommand implements FunctionalCommand {
 
    public static final int COMMAND_ID = 62;
    protected Function<ReadEntryView<K, V>, R> f;
    protected Params params;
-   private EncodingClasses encodingClasses;
+   protected EncodingClasses encodingClasses;
 
    protected transient CacheEncoders cacheEncoders = CacheEncoders.EMPTY;
 
@@ -117,6 +117,17 @@ public class ReadOnlyKeyCommand<K, V, R> extends AbstractDataCommand {
             '}';
    }
 
+   @Override
+   public Params getParams() {
+      return params;
+   }
+
+   @Override
+   public Mutation toMutation(Object key) {
+      throw new UnsupportedOperationException("ReadOnly command's don't mutate");
+   }
+
+   @Override
    public EncodingClasses getEncodingClasses() {
       return encodingClasses;
    }

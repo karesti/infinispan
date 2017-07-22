@@ -10,10 +10,11 @@ import java.util.Collection;
 import java.util.List;
 import java.util.function.Function;
 
+import org.infinispan.cache.impl.CacheEncoders;
 import org.infinispan.cache.impl.EncodingClasses;
 import org.infinispan.commands.CommandInvocationId;
 import org.infinispan.commands.Visitor;
-import org.infinispan.commands.functional.functions.InjectableWrappper;
+import org.infinispan.commands.functional.functions.InjectableComponent;
 import org.infinispan.commons.marshall.MarshallUtil;
 import org.infinispan.container.entries.CacheEntry;
 import org.infinispan.context.InvocationContext;
@@ -60,7 +61,7 @@ public final class ReadWriteManyCommand<K, V, R> extends AbstractWriteManyComman
 
    @Inject
    public void injectDependencies(EncoderRegistry encoderRegistry) {
-      cacheEncoders.grabEncodersFromRegistry(encoderRegistry, encodingClasses);
+      cacheEncoders = CacheEncoders.grabEncodersFromRegistry(encoderRegistry, encodingClasses);
    }
 
    public void setKeys(Collection<? extends K> keys) {
@@ -86,7 +87,7 @@ public final class ReadWriteManyCommand<K, V, R> extends AbstractWriteManyComman
       Params.writeObject(output, params);
       output.writeInt(topologyId);
       output.writeLong(flags);
-      output.writeObject(encodingClasses);
+      EncodingClasses.writeTo(output, encodingClasses);
    }
 
    @Override
@@ -98,7 +99,7 @@ public final class ReadWriteManyCommand<K, V, R> extends AbstractWriteManyComman
       params = Params.readObject(input);
       topologyId = input.readInt();
       flags = input.readLong();
-      encodingClasses = (EncodingClasses) input.readObject();
+      encodingClasses = EncodingClasses.readFrom(input);
    }
 
    public boolean isForwarded() {
@@ -142,7 +143,7 @@ public final class ReadWriteManyCommand<K, V, R> extends AbstractWriteManyComman
          // Could be that the key is not local, 'null' is how this is signalled
          if (entry != null) {
             R r = f.apply(EntryViews.readWrite(entry, cacheEncoders));
-            returns.add(snapshot(r, cacheEncoders));
+            returns.add(snapshot(r));
          }
       });
       return returns;
@@ -184,8 +185,8 @@ public final class ReadWriteManyCommand<K, V, R> extends AbstractWriteManyComman
       if (encodingClasses != null) {
          componentRegistry.wireDependencies(this);
       }
-      if (f instanceof InjectableWrappper) {
-         ((InjectableWrappper) f).inject(componentRegistry);
+      if (f instanceof InjectableComponent) {
+         ((InjectableComponent) f).inject(componentRegistry);
       }
    }
 }

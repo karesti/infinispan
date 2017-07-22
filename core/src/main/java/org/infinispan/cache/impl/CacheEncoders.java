@@ -6,31 +6,44 @@ import org.infinispan.commons.dataconversion.Wrapper;
 import org.infinispan.marshall.core.EncoderRegistry;
 
 /**
+ * TODO: Refactor with ISPN-
+ * @author Katia Aresti, karesti@redhat.com
  * @since 9.2
  */
-public class CacheEncoders {
+public final class CacheEncoders {
 
-   private Encoder keyEncoder;
-   private Encoder valueEncoder;
-   private Wrapper keyWrapper;
-   private Wrapper valueWrapper;
+   public static final CacheEncoders EMPTY = new CacheEncoders();
 
-   public CacheEncoders() {
+   private final Encoder keyEncoder;
+   private final Encoder valueEncoder;
+   private final Wrapper keyWrapper;
+   private final Wrapper valueWrapper;
 
+   private CacheEncoders() {
+      this.keyEncoder = null;
+      this.keyWrapper = null;
+      this.valueEncoder = null;
+      this.valueWrapper = null;
    }
 
-   public CacheEncoders(Encoder keyEncoder, Wrapper keyWrapper, Encoder valueEncoder, Wrapper valueWrapper) {
+   private CacheEncoders(Encoder keyEncoder, Wrapper keyWrapper, Encoder valueEncoder, Wrapper valueWrapper) {
       this.keyEncoder = keyEncoder;
       this.keyWrapper = keyWrapper;
       this.valueEncoder = valueEncoder;
       this.valueWrapper = valueWrapper;
    }
 
-   public void grabEncodersFromRegistry(EncoderRegistry encoderRegistry, EncodingClasses encodingClasses) {
-      this.keyEncoder = encoderRegistry.getEncoder(encodingClasses.getKeyEncoderClass());
-      this.valueEncoder = encoderRegistry.getEncoder(encodingClasses.getValueEncoderClass());
-      this.keyWrapper = encoderRegistry.getWrapper(encodingClasses.getKeyWrapperClass());
-      this.valueWrapper = encoderRegistry.getWrapper(encodingClasses.getValueWrapperClass());
+   public static CacheEncoders create(Encoder keyEncoder, Wrapper keyWrapper, Encoder valueEncoder, Wrapper valueWrapper) {
+      return new CacheEncoders(keyEncoder, keyWrapper, valueEncoder, valueWrapper);
+   }
+
+   public static CacheEncoders grabEncodersFromRegistry(EncoderRegistry encoderRegistry, EncodingClasses encodingClasses) {
+      CacheEncoders cacheEncoders = new CacheEncoders(encoderRegistry.getEncoder(encodingClasses.getKeyEncoderClass()),
+            encoderRegistry.getWrapper(encodingClasses.getKeyWrapperClass()),
+            encoderRegistry.getEncoder(encodingClasses.getValueEncoderClass()),
+            encoderRegistry.getWrapper(encodingClasses.getValueWrapperClass())
+      );
+      return cacheEncoders;
    }
 
    public Encoder getKeyEncoder() {

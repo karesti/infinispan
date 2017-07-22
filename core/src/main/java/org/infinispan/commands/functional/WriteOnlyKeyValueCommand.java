@@ -5,10 +5,11 @@ import java.io.ObjectInput;
 import java.io.ObjectOutput;
 import java.util.function.BiConsumer;
 
+import org.infinispan.cache.impl.CacheEncoders;
 import org.infinispan.cache.impl.EncodingClasses;
 import org.infinispan.commands.CommandInvocationId;
 import org.infinispan.commands.Visitor;
-import org.infinispan.commands.functional.functions.InjectableWrappper;
+import org.infinispan.commands.functional.functions.InjectableComponent;
 import org.infinispan.commands.write.ValueMatcher;
 import org.infinispan.commons.marshall.MarshallUtil;
 import org.infinispan.container.entries.CacheEntry;
@@ -47,7 +48,7 @@ public final class WriteOnlyKeyValueCommand<K, V> extends AbstractWriteKeyComman
 
    @Inject
    public void injectDependencies(EncoderRegistry encoderRegistry) {
-      cacheEncoders.grabEncodersFromRegistry(encoderRegistry, encodingClasses);
+      cacheEncoders = CacheEncoders.grabEncodersFromRegistry(encoderRegistry, encodingClasses);
    }
 
    @Override
@@ -64,7 +65,7 @@ public final class WriteOnlyKeyValueCommand<K, V> extends AbstractWriteKeyComman
       Params.writeObject(output, params);
       output.writeLong(FlagBitSets.copyWithoutRemotableFlags(getFlagsBitSet()));
       CommandInvocationId.writeTo(output, commandInvocationId);
-      output.writeObject(encodingClasses);
+      EncodingClasses.writeTo(output, encodingClasses);
    }
 
    @Override
@@ -76,7 +77,7 @@ public final class WriteOnlyKeyValueCommand<K, V> extends AbstractWriteKeyComman
       params = Params.readObject(input);
       setFlagsBitSet(input.readLong());
       commandInvocationId = CommandInvocationId.readFrom(input);
-      encodingClasses = (EncodingClasses) input.readObject();
+      encodingClasses = EncodingClasses.readFrom(input);
    }
 
    @Override
@@ -112,7 +113,8 @@ public final class WriteOnlyKeyValueCommand<K, V> extends AbstractWriteKeyComman
 
    @Override
    public Mutation<K, V, ?> toMutation(K key) {
-      return new Mutations.WriteWithValue<>(value, f);
+      V valueFromStorage = (V) cacheEncoders.valueFromStorage(value);
+      return new Mutations.WriteWithValue<>(valueFromStorage, f);
    }
 
    @Override
@@ -120,7 +122,7 @@ public final class WriteOnlyKeyValueCommand<K, V> extends AbstractWriteKeyComman
       if (encodingClasses != null) {
          componentRegistry.wireDependencies(this);
       }
-      if (f instanceof InjectableWrappper)
-         ((InjectableWrappper) f).inject(componentRegistry);
+      if (f instanceof InjectableComponent)
+         ((InjectableComponent) f).inject(componentRegistry);
    }
 }

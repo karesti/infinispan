@@ -7,10 +7,11 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.function.Consumer;
 
+import org.infinispan.cache.impl.CacheEncoders;
 import org.infinispan.cache.impl.EncodingClasses;
 import org.infinispan.commands.CommandInvocationId;
 import org.infinispan.commands.Visitor;
-import org.infinispan.commands.functional.functions.InjectableWrappper;
+import org.infinispan.commands.functional.functions.InjectableComponent;
 import org.infinispan.commons.marshall.MarshallUtil;
 import org.infinispan.container.entries.CacheEntry;
 import org.infinispan.context.InvocationContext;
@@ -50,7 +51,7 @@ public final class WriteOnlyManyCommand<K, V> extends AbstractWriteManyCommand<K
 
    @Inject
    public void injectDependencies(EncoderRegistry encoderRegistry) {
-      cacheEncoders.grabEncodersFromRegistry(encoderRegistry, encodingClasses);
+      cacheEncoders = CacheEncoders.grabEncodersFromRegistry(encoderRegistry, encodingClasses);
    }
 
    public WriteOnlyManyCommand() {
@@ -79,7 +80,7 @@ public final class WriteOnlyManyCommand<K, V> extends AbstractWriteManyCommand<K
       Params.writeObject(output, params);
       output.writeInt(topologyId);
       output.writeLong(flags);
-      output.writeObject(encodingClasses);
+      EncodingClasses.writeTo(output, encodingClasses);
    }
 
    @Override
@@ -91,7 +92,7 @@ public final class WriteOnlyManyCommand<K, V> extends AbstractWriteManyCommand<K
       params = Params.readObject(input);
       topologyId = input.readInt();
       flags = input.readLong();
-      encodingClasses = (EncodingClasses) input.readObject();
+      encodingClasses = EncodingClasses.readFrom(input);
    }
 
    @Override
@@ -157,7 +158,7 @@ public final class WriteOnlyManyCommand<K, V> extends AbstractWriteManyCommand<K
       if (encodingClasses != null) {
          componentRegistry.wireDependencies(this);
       }
-      if (f instanceof InjectableWrappper)
-         ((InjectableWrappper) f).inject(componentRegistry);
+      if (f instanceof InjectableComponent)
+         ((InjectableComponent) f).inject(componentRegistry);
    }
 }

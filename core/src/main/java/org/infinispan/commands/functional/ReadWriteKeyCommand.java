@@ -8,10 +8,11 @@ import java.io.ObjectInput;
 import java.io.ObjectOutput;
 import java.util.function.Function;
 
+import org.infinispan.cache.impl.CacheEncoders;
 import org.infinispan.cache.impl.EncodingClasses;
 import org.infinispan.commands.CommandInvocationId;
 import org.infinispan.commands.Visitor;
-import org.infinispan.commands.functional.functions.InjectableWrappper;
+import org.infinispan.commands.functional.functions.InjectableComponent;
 import org.infinispan.commands.write.ValueMatcher;
 import org.infinispan.commons.marshall.MarshallUtil;
 import org.infinispan.container.entries.CacheEntry;
@@ -52,7 +53,7 @@ public final class ReadWriteKeyCommand<K, V, R> extends AbstractWriteKeyCommand<
 
    @Inject
    public void injectDependencies(EncoderRegistry encoderRegistry) {
-      cacheEncoders.grabEncodersFromRegistry(encoderRegistry, encodingClasses);
+      cacheEncoders = CacheEncoders.grabEncodersFromRegistry(encoderRegistry, encodingClasses);
    }
 
    @Override
@@ -63,7 +64,7 @@ public final class ReadWriteKeyCommand<K, V, R> extends AbstractWriteKeyCommand<
       Params.writeObject(output, params);
       output.writeLong(FlagBitSets.copyWithoutRemotableFlags(getFlagsBitSet()));
       CommandInvocationId.writeTo(output, commandInvocationId);
-      output.writeObject(encodingClasses);
+      EncodingClasses.writeTo(output, encodingClasses);
    }
 
    @Override
@@ -74,7 +75,7 @@ public final class ReadWriteKeyCommand<K, V, R> extends AbstractWriteKeyCommand<
       params = Params.readObject(input);
       setFlagsBitSet(input.readLong());
       commandInvocationId = CommandInvocationId.readFrom(input);
-      encodingClasses = (EncodingClasses) input.readObject();
+      encodingClasses = EncodingClasses.readFrom(input);
    }
 
    @Override
@@ -96,14 +97,9 @@ public final class ReadWriteKeyCommand<K, V, R> extends AbstractWriteKeyCommand<
       if (e == null) return null;
 
       R ret;
-      ReadWriteEntryView<K, V> entry = isEncoded() ?
-            EntryViews.readWrite(e, cacheEncoders) : EntryViews.readWrite(e);
+      ReadWriteEntryView<K, V> entry = EntryViews.readWrite(e, cacheEncoders);
       ret = f.apply(entry);
-      return snapshot(ret, cacheEncoders);
-   }
-
-   private boolean isEncoded() {
-      return encodingClasses != null;
+      return snapshot(ret);
    }
 
    @Override
@@ -143,7 +139,7 @@ public final class ReadWriteKeyCommand<K, V, R> extends AbstractWriteKeyCommand<
       if (encodingClasses != null) {
          componentRegistry.wireDependencies(this);
       }
-      if (f instanceof InjectableWrappper)
-         ((InjectableWrappper) f).inject(componentRegistry);
+      if (f instanceof InjectableComponent)
+         ((InjectableComponent) f).inject(componentRegistry);
    }
 }

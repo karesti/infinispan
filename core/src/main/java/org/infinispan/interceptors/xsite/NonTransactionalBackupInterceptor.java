@@ -98,7 +98,7 @@ public class NonTransactionalBackupInterceptor extends BaseBackupInterceptor {
          return commandsFactory.buildComputeIfAbsentCommand(computeIfAbsentCommand.getKey(), computeIfAbsentCommand.getMappingFunction(), computeIfAbsentCommand.getMetadata(), computeIfAbsentCommand.getFlagsBitSet());
       } else if (command instanceof ReadWriteKeyCommand) {
          ReadWriteKeyCommand readWriteKeyCommand = (ReadWriteKeyCommand) command;
-         return commandsFactory.buildReadWriteKeyCommand(readWriteKeyCommand.getKey(), readWriteKeyCommand.getFunction(), readWriteKeyCommand.getParams());
+         return commandsFactory.buildReadWriteKeyCommand(readWriteKeyCommand.getKey(), readWriteKeyCommand.getFunction(), readWriteKeyCommand.getParams(), readWriteKeyCommand.getEncodingClasses());
       }
       throw new IllegalArgumentException("Command " + command + " is not valid!");
    }

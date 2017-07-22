@@ -24,7 +24,7 @@ public class EncoderEntryMapper<K, V> implements RemovableFunction<CacheEntry<K,
 
    private final EncodingClasses encodingClasses;
 
-   private transient CacheEncoders encoders = new CacheEncoders();
+   private transient CacheEncoders encoders = CacheEncoders.EMPTY;
 
    public EncoderEntryMapper(EncodingClasses encodingClasses) {
       this.encodingClasses = encodingClasses;
@@ -33,7 +33,7 @@ public class EncoderEntryMapper<K, V> implements RemovableFunction<CacheEntry<K,
    @Inject
    public void injectDependencies(EncoderRegistry encoderRegistry, InternalEntryFactory factory) {
       this.entryFactory = factory;
-      encoders.grabEncodersFromRegistry(encoderRegistry, encodingClasses);
+      encoders = CacheEncoders.grabEncodersFromRegistry(encoderRegistry, encodingClasses);
    }
 
    private Object decode(Object o, Encoder encoder) {
@@ -74,13 +74,13 @@ public class EncoderEntryMapper<K, V> implements RemovableFunction<CacheEntry<K,
 
       @Override
       public void writeObject(ObjectOutput output, EncoderEntryMapper object) throws IOException {
-         output.writeObject(object.encodingClasses);
+         EncodingClasses.writeTo(output, object.encodingClasses);
       }
 
       @Override
       @SuppressWarnings("unchecked")
       public EncoderEntryMapper readObject(ObjectInput input) throws IOException, ClassNotFoundException {
-         return new EncoderEntryMapper((EncodingClasses) input.readObject());
+         return new EncoderEntryMapper(EncodingClasses.readFrom(input));
       }
    }
 }

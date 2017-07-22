@@ -19,17 +19,8 @@ public abstract class AbstractWriteManyCommand<K, V> implements WriteCommand, Fu
    // TODO: this is used for the non-modifying read-write commands. Move required flags to Params
    // and make sure that ClusteringDependentLogic checks them.
    long flags;
-
    EncodingClasses encodingClasses;
-
-   CacheEncoders cacheEncoders = new CacheEncoders();
-
-   protected AbstractWriteManyCommand(CommandInvocationId commandInvocationId,
-                                      Params params) {
-      this.commandInvocationId = commandInvocationId;
-      this.params = params;
-      this.flags = params.toFlagsBitSet();
-   }
+   CacheEncoders cacheEncoders = CacheEncoders.EMPTY;
 
    protected AbstractWriteManyCommand(CommandInvocationId commandInvocationId,
                                       Params params,
@@ -38,10 +29,6 @@ public abstract class AbstractWriteManyCommand<K, V> implements WriteCommand, Fu
       this.params = params;
       this.flags = params.toFlagsBitSet();
       this.encodingClasses = encodingClasses;
-   }
-
-   public void init(ComponentRegistry componentRegistry) {
-      componentRegistry.wireDependencies(this);
    }
 
    protected <K, V> AbstractWriteManyCommand(AbstractWriteManyCommand<K, V> command) {
@@ -134,4 +121,11 @@ public abstract class AbstractWriteManyCommand<K, V> implements WriteCommand, Fu
    public boolean hasSkipLocking() {
       return hasAnyFlag(FlagBitSets.SKIP_LOCKING);
    }
+
+   @Override
+   public EncodingClasses getEncodingClasses() {
+      return encodingClasses;
+   }
+
+   abstract public void init(ComponentRegistry componentRegistry);
 }

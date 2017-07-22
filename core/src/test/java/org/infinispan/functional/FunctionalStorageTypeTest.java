@@ -5,7 +5,7 @@ import org.infinispan.configuration.cache.StorageType;
 import org.testng.annotations.Test;
 
 @Test(groups = "functional", testName = "functional.FunctionalEncoderTest")
-public class FunctionalEncoderTest extends FunctionalMapTest {
+public class FunctionalStorageTypeTest extends FunctionalMapTest {
    StorageType storageType;
 
    @Override
@@ -16,13 +16,13 @@ public class FunctionalEncoderTest extends FunctionalMapTest {
 
    public Object[] factory() {
       return new Object[]{
-            new FunctionalEncoderTest().storageType(StorageType.OFF_HEAP),
-            new FunctionalEncoderTest().storageType(StorageType.BINARY),
-            new FunctionalEncoderTest().storageType(StorageType.OBJECT),
+            new FunctionalStorageTypeTest().storageType(StorageType.OFF_HEAP),
+            new FunctionalStorageTypeTest().storageType(StorageType.BINARY),
+            new FunctionalStorageTypeTest().storageType(StorageType.OBJECT),
       };
    }
 
-   FunctionalEncoderTest storageType(StorageType storageType) {
+   FunctionalStorageTypeTest storageType(StorageType storageType) {
       this.storageType = storageType;
       return this;
    }

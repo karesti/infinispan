@@ -31,7 +31,7 @@ public class ReadOnlyManyCommand<K, V, R> extends AbstractTopologyAffectedComman
    protected Function<ReadEntryView<K, V>, R> f;
    protected Params params;
    private EncodingClasses encodingClasses;
-   protected transient CacheEncoders cacheEncoders = new CacheEncoders();
+   protected transient CacheEncoders cacheEncoders = CacheEncoders.EMPTY;
 
    public ReadOnlyManyCommand(Collection<? extends K> keys,
                               Function<ReadEntryView<K, V>, R> f,
@@ -62,14 +62,11 @@ public class ReadOnlyManyCommand<K, V, R> extends AbstractTopologyAffectedComman
       if (encodingClasses != null) {
          componentRegistry.wireDependencies(this);
       }
-      if (encodingClasses != null) {
-         componentRegistry.wireDependencies(this);
-      }
    }
 
    @Inject
    public void injectDependencies(EncoderRegistry encoderRegistry) {
-      cacheEncoders.grabEncodersFromRegistry(encoderRegistry, encodingClasses);
+      cacheEncoders = CacheEncoders.grabEncodersFromRegistry(encoderRegistry, encodingClasses);
    }
 
    public Collection<? extends K> getKeys() {
@@ -105,7 +102,7 @@ public class ReadOnlyManyCommand<K, V, R> extends AbstractTopologyAffectedComman
       MarshallUtil.marshallCollection(keys, output);
       output.writeObject(f);
       Params.writeObject(output, params);
-      output.writeObject(encodingClasses);
+      EncodingClasses.writeTo(output, encodingClasses);
    }
 
    @Override
@@ -114,7 +111,7 @@ public class ReadOnlyManyCommand<K, V, R> extends AbstractTopologyAffectedComman
       this.f = (Function<ReadEntryView<K, V>, R>) input.readObject();
       this.params = Params.readObject(input);
       this.setFlagsBitSet(params.toFlagsBitSet());
-      encodingClasses = (EncodingClasses) input.readObject();
+      encodingClasses = EncodingClasses.readFrom(input);
    }
 
    @Override
@@ -124,7 +121,7 @@ public class ReadOnlyManyCommand<K, V, R> extends AbstractTopologyAffectedComman
       for (K k : keys) {
          CacheEntry<K, V> me = lookupCacheEntry(ctx, k);
          R ret = f.apply(me.isNull() ? EntryViews.noValue(k, cacheEncoders) : EntryViews.readOnly(me, cacheEncoders));
-         retvals.add(snapshot(ret, cacheEncoders));
+         retvals.add(snapshot(ret));
       }
       return retvals.stream();
    }
@@ -141,6 +138,10 @@ public class ReadOnlyManyCommand<K, V, R> extends AbstractTopologyAffectedComman
    @Override
    public LoadType loadType() {
       return LoadType.OWNER;
+   }
+
+   public EncodingClasses getEncodingClasses() {
+      return encodingClasses;
    }
 
    @Override

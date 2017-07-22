@@ -7,10 +7,11 @@ import java.util.Collection;
 import java.util.Map;
 import java.util.function.BiConsumer;
 
+import org.infinispan.cache.impl.CacheEncoders;
 import org.infinispan.cache.impl.EncodingClasses;
 import org.infinispan.commands.CommandInvocationId;
 import org.infinispan.commands.Visitor;
-import org.infinispan.commands.functional.functions.InjectableWrappper;
+import org.infinispan.commands.functional.functions.InjectableComponent;
 import org.infinispan.container.entries.CacheEntry;
 import org.infinispan.context.InvocationContext;
 import org.infinispan.factories.ComponentRegistry;
@@ -52,7 +53,7 @@ public final class WriteOnlyManyEntriesCommand<K, V> extends AbstractWriteManyCo
 
    @Inject
    public void injectDependencies(EncoderRegistry encoderRegistry) {
-      cacheEncoders.grabEncodersFromRegistry(encoderRegistry, encodingClasses);
+      cacheEncoders = CacheEncoders.grabEncodersFromRegistry(encoderRegistry, encodingClasses);
    }
 
    public Map<? extends K, ? extends V> getEntries() {
@@ -82,7 +83,7 @@ public final class WriteOnlyManyEntriesCommand<K, V> extends AbstractWriteManyCo
       Params.writeObject(output, params);
       output.writeInt(topologyId);
       output.writeLong(flags);
-      output.writeObject(encodingClasses);
+      EncodingClasses.writeTo(output, encodingClasses);
    }
 
    @Override
@@ -94,7 +95,7 @@ public final class WriteOnlyManyEntriesCommand<K, V> extends AbstractWriteManyCo
       params = Params.readObject(input);
       topologyId = input.readInt();
       flags = input.readLong();
-      encodingClasses = (EncodingClasses) input.readObject();
+      encodingClasses = EncodingClasses.readFrom(input);
    }
 
    @Override
@@ -153,7 +154,8 @@ public final class WriteOnlyManyEntriesCommand<K, V> extends AbstractWriteManyCo
 
    @Override
    public Mutation<K, V, ?> toMutation(K key) {
-      return new Mutations.WriteWithValue<>(entries.get(key), f);
+      V valueFromStorage = (V) cacheEncoders.valueFromStorage(entries.get(key));
+      return new Mutations.WriteWithValue<>(valueFromStorage, f);
    }
 
    @Override
@@ -161,7 +163,7 @@ public final class WriteOnlyManyEntriesCommand<K, V> extends AbstractWriteManyCo
       if (encodingClasses != null) {
          componentRegistry.wireDependencies(this);
       }
-      if (f instanceof InjectableWrappper)
-         ((InjectableWrappper) f).inject(componentRegistry);
+      if (f instanceof InjectableComponent)
+         ((InjectableComponent) f).inject(componentRegistry);
    }
 }

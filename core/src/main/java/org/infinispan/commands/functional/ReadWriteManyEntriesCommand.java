@@ -11,10 +11,11 @@ import java.util.List;
 import java.util.Map;
 import java.util.function.BiFunction;
 
+import org.infinispan.cache.impl.CacheEncoders;
 import org.infinispan.cache.impl.EncodingClasses;
 import org.infinispan.commands.CommandInvocationId;
 import org.infinispan.commands.Visitor;
-import org.infinispan.commands.functional.functions.InjectableWrappper;
+import org.infinispan.commands.functional.functions.InjectableComponent;
 import org.infinispan.container.entries.CacheEntry;
 import org.infinispan.context.InvocationContext;
 import org.infinispan.factories.ComponentRegistry;
@@ -79,7 +80,7 @@ public final class ReadWriteManyEntriesCommand<K, V, R> extends AbstractWriteMan
 
    @Inject
    public void injectDependencies(EncoderRegistry encoderRegistry) {
-      cacheEncoders.grabEncodersFromRegistry(encoderRegistry, encodingClasses);
+      cacheEncoders = CacheEncoders.grabEncodersFromRegistry(encoderRegistry, encodingClasses);
    }
 
    @Override
@@ -91,7 +92,7 @@ public final class ReadWriteManyEntriesCommand<K, V, R> extends AbstractWriteMan
       Params.writeObject(output, params);
       output.writeInt(topologyId);
       output.writeLong(flags);
-      output.writeObject(encodingClasses);
+      EncodingClasses.writeTo(output, encodingClasses);
    }
 
    @Override
@@ -103,7 +104,7 @@ public final class ReadWriteManyEntriesCommand<K, V, R> extends AbstractWriteMan
       params = Params.readObject(input);
       topologyId = input.readInt();
       flags = input.readLong();
-      encodingClasses = (EncodingClasses) input.readObject();
+      encodingClasses = EncodingClasses.readFrom(input);
    }
 
    public boolean isForwarded() {
@@ -144,7 +145,7 @@ public final class ReadWriteManyEntriesCommand<K, V, R> extends AbstractWriteMan
             throw new IllegalStateException();
          }
          R r = f.apply(v, EntryViews.readWrite(entry, cacheEncoders));
-         returns.add(snapshot(r, cacheEncoders));
+         returns.add(snapshot(r));
       });
       return returns;
    }
@@ -186,7 +187,8 @@ public final class ReadWriteManyEntriesCommand<K, V, R> extends AbstractWriteMan
 
    @Override
    public Mutation<K, V, ?> toMutation(K key) {
-      return new Mutations.ReadWriteWithValue(entries.get(key), f);
+      V valueFromStorage = (V) cacheEncoders.valueFromStorage(entries.get(key));
+      return new Mutations.ReadWriteWithValue(valueFromStorage, f);
    }
 
    @Override
@@ -194,7 +196,7 @@ public final class ReadWriteManyEntriesCommand<K, V, R> extends AbstractWriteMan
       if (encodingClasses != null) {
          componentRegistry.wireDependencies(this);
       }
-      if (f instanceof InjectableWrappper)
-         ((InjectableWrappper) f).inject(componentRegistry);
+      if (f instanceof InjectableComponent)
+         ((InjectableComponent) f).inject(componentRegistry);
    }
 }

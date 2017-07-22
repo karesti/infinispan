@@ -12,23 +12,23 @@ import java.util.function.Supplier;
 
 import org.infinispan.functional.EntryView.ReadEntryView;
 import org.infinispan.functional.EntryView.ReadWriteEntryView;
+import org.infinispan.functional.impl.FunctionalMapFactory;
 import org.infinispan.functional.impl.FunctionalMapImpl;
-import org.infinispan.functional.impl.MapFactory;
 
 public final class FunctionalTestUtils {
 
    static final Random R = new Random();
 
    static <K> FunctionalMap.ReadOnlyMap<K, String> ro(FunctionalMapImpl<K, String> fmap) {
-      return MapFactory.readOnlyMap(fmap);
+      return FunctionalMapFactory.readOnlyMap(fmap);
    }
 
    static <K> FunctionalMap.WriteOnlyMap<K, String> wo(FunctionalMapImpl<K, String> fmap) {
-      return MapFactory.writeOnlyMap(fmap);
+      return FunctionalMapFactory.writeOnlyMap(fmap);
    }
 
    static <K> FunctionalMap.ReadWriteMap<K, String> rw(FunctionalMapImpl<K, String> fmap) {
-      return MapFactory.readWriteMap(fmap);
+      return FunctionalMapFactory.readWriteMap(fmap);
    }
 
    static Supplier<Integer> supplyIntKey() {

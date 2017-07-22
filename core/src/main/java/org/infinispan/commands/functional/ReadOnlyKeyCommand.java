@@ -10,7 +10,7 @@ import java.util.function.Function;
 import org.infinispan.cache.impl.CacheEncoders;
 import org.infinispan.cache.impl.EncodingClasses;
 import org.infinispan.commands.Visitor;
-import org.infinispan.commands.functional.functions.InjectableWrappper;
+import org.infinispan.commands.functional.functions.InjectableComponent;
 import org.infinispan.commands.read.AbstractDataCommand;
 import org.infinispan.commons.util.EnumUtil;
 import org.infinispan.container.entries.CacheEntry;
@@ -29,7 +29,7 @@ public class ReadOnlyKeyCommand<K, V, R> extends AbstractDataCommand {
    protected Params params;
    private EncodingClasses encodingClasses;
 
-   private transient CacheEncoders encoders = new CacheEncoders();
+   protected transient CacheEncoders cacheEncoders = CacheEncoders.EMPTY;
 
    public ReadOnlyKeyCommand(Object key, Function<ReadEntryView<K, V>, R> f, Params params, EncodingClasses encodingClasses, ComponentRegistry componentRegistry) {
       super(key, EnumUtil.EMPTY_BIT_SET);
@@ -45,15 +45,15 @@ public class ReadOnlyKeyCommand<K, V, R> extends AbstractDataCommand {
 
    @Inject
    public void injectDependencies(EncoderRegistry encoderRegistry) {
-      encoders.grabEncodersFromRegistry(encoderRegistry, encodingClasses);
+      cacheEncoders = CacheEncoders.grabEncodersFromRegistry(encoderRegistry, encodingClasses);
    }
 
    public void init(ComponentRegistry componentRegistry) {
       if (encodingClasses != null) {
          componentRegistry.wireDependencies(this);
       }
-      if (f instanceof InjectableWrappper)
-         ((InjectableWrappper) f).inject(componentRegistry);
+      if (f instanceof InjectableComponent)
+         ((InjectableComponent) f).inject(componentRegistry);
    }
 
    @Override
@@ -66,7 +66,7 @@ public class ReadOnlyKeyCommand<K, V, R> extends AbstractDataCommand {
       output.writeObject(key);
       output.writeObject(f);
       Params.writeObject(output, params);
-      output.writeObject(encodingClasses);
+      EncodingClasses.writeTo(output, encodingClasses);
    }
 
    @Override
@@ -75,7 +75,7 @@ public class ReadOnlyKeyCommand<K, V, R> extends AbstractDataCommand {
       f = (Function<ReadEntryView<K, V>, R>) input.readObject();
       params = Params.readObject(input);
       this.setFlagsBitSet(params.toFlagsBitSet());
-      encodingClasses = (EncodingClasses) input.readObject();
+      encodingClasses = EncodingClasses.readFrom(input);
    }
 
    // Not really invoked unless in local mode
@@ -87,9 +87,9 @@ public class ReadOnlyKeyCommand<K, V, R> extends AbstractDataCommand {
          throw new IllegalStateException();
       }
 
-      ReadEntryView<K, V> ro = entry.isNull() ? EntryViews.noValue((K) key, encoders) : EntryViews.readOnly(entry, encoders);
+      ReadEntryView<K, V> ro = entry.isNull() ? EntryViews.noValue((K) key, cacheEncoders) : EntryViews.readOnly(entry, cacheEncoders);
       R ret = f.apply(ro);
-      return snapshot(ret, encoders);
+      return snapshot(ret);
    }
 
    @Override
@@ -106,7 +106,7 @@ public class ReadOnlyKeyCommand<K, V, R> extends AbstractDataCommand {
     * Apply function on entry without any data
     */
    public Object performOnLostData() {
-      return f.apply(EntryViews.noValue((K) key, encoders));
+      return f.apply(EntryViews.noValue((K) key, cacheEncoders));
    }
 
    @Override
@@ -115,5 +115,9 @@ public class ReadOnlyKeyCommand<K, V, R> extends AbstractDataCommand {
             "key=" + key +
             ", f=" + f +
             '}';
+   }
+
+   public EncodingClasses getEncodingClasses() {
+      return encodingClasses;
    }
 }

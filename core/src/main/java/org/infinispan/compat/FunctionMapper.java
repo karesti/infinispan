@@ -11,7 +11,7 @@ import java.util.Set;
 import java.util.function.Function;
 
 import org.infinispan.cache.impl.EncodingClasses;
-import org.infinispan.commands.functional.functions.InjectableWrappper;
+import org.infinispan.commands.functional.functions.InjectableComponent;
 import org.infinispan.commons.dataconversion.Encoder;
 import org.infinispan.commons.dataconversion.Wrapper;
 import org.infinispan.commons.marshall.AdvancedExternalizer;
@@ -20,7 +20,7 @@ import org.infinispan.factories.ComponentRegistry;
 import org.infinispan.factories.annotations.Inject;
 import org.infinispan.marshall.core.EncoderRegistry;
 
-public class FunctionMapper implements Function, InjectableWrappper {
+public class FunctionMapper implements Function, InjectableComponent {
 
    private final EncodingClasses encodingClasses;
 
@@ -48,9 +48,7 @@ public class FunctionMapper implements Function, InjectableWrappper {
    @Override
    public Object apply(Object k) {
       Object key = fromStorage(k, keyEncoder, keyWrapper);
-
       Object result = function.apply(key);
-
       return result == null ? result : toStorage(result, valueEncoder, valueWrapper);
    }
 
@@ -74,13 +72,13 @@ public class FunctionMapper implements Function, InjectableWrappper {
       @Override
       public void writeObject(ObjectOutput output, FunctionMapper object) throws IOException {
          output.writeObject(object.function);
-         output.writeObject(object.encodingClasses);
+         EncodingClasses.writeTo(output, object.encodingClasses);
       }
 
       @Override
       public FunctionMapper readObject(ObjectInput input) throws IOException, ClassNotFoundException {
          return new FunctionMapper((Function) input.readObject(),
-               (EncodingClasses) input.readObject());
+               EncodingClasses.readFrom(input));
       }
    }
 }

@@ -8,10 +8,11 @@ import java.io.ObjectInput;
 import java.io.ObjectOutput;
 import java.util.function.BiFunction;
 
+import org.infinispan.cache.impl.CacheEncoders;
 import org.infinispan.cache.impl.EncodingClasses;
 import org.infinispan.commands.CommandInvocationId;
 import org.infinispan.commands.Visitor;
-import org.infinispan.commands.functional.functions.InjectableWrappper;
+import org.infinispan.commands.functional.functions.InjectableComponent;
 import org.infinispan.commands.write.ValueMatcher;
 import org.infinispan.commons.marshall.MarshallUtil;
 import org.infinispan.container.entries.CacheEntry;
@@ -52,7 +53,7 @@ public final class ReadWriteKeyValueCommand<K, V, R> extends AbstractWriteKeyCom
 
    @Inject
    public void injectDependencies(EncoderRegistry encoderRegistry) {
-      cacheEncoders.grabEncodersFromRegistry(encoderRegistry, encodingClasses);
+      cacheEncoders = CacheEncoders.grabEncodersFromRegistry(encoderRegistry, encodingClasses);
    }
 
    public ReadWriteKeyValueCommand() {
@@ -75,7 +76,7 @@ public final class ReadWriteKeyValueCommand<K, V, R> extends AbstractWriteKeyCom
       CommandInvocationId.writeTo(output, commandInvocationId);
       output.writeObject(prevValue);
       output.writeObject(prevMetadata);
-      output.writeObject(encodingClasses);
+      EncodingClasses.writeTo(output, encodingClasses);
    }
 
    @Override
@@ -89,7 +90,7 @@ public final class ReadWriteKeyValueCommand<K, V, R> extends AbstractWriteKeyCom
       commandInvocationId = CommandInvocationId.readFrom(input);
       prevValue = (V) input.readObject();
       prevMetadata = (Metadata) input.readObject();
-      encodingClasses = (EncodingClasses) input.readObject();
+      encodingClasses = EncodingClasses.readFrom(input);
    }
 
    @Override
@@ -135,7 +136,7 @@ public final class ReadWriteKeyValueCommand<K, V, R> extends AbstractWriteKeyCom
          e.setChanged(copy.isChanged());
          e.setRemoved(copy.isRemoved());
       }
-      return snapshot(ret, cacheEncoders);
+      return snapshot(ret);
    }
 
    @Override
@@ -166,7 +167,8 @@ public final class ReadWriteKeyValueCommand<K, V, R> extends AbstractWriteKeyCom
 
    @Override
    public Mutation toMutation(K key) {
-      return new Mutations.ReadWriteWithValue<>(value, f);
+      V valueFromStorage = (V) cacheEncoders.valueFromStorage(value);
+      return new Mutations.ReadWriteWithValue<>(valueFromStorage, f);
    }
 
    @Override
@@ -174,7 +176,7 @@ public final class ReadWriteKeyValueCommand<K, V, R> extends AbstractWriteKeyCom
       if (encodingClasses != null) {
          componentRegistry.wireDependencies(this);
       }
-      if (f instanceof InjectableWrappper)
-         ((InjectableWrappper) f).inject(componentRegistry);
+      if (f instanceof InjectableComponent)
+         ((InjectableComponent) f).inject(componentRegistry);
    }
 }

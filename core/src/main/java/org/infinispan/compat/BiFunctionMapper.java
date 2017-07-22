@@ -65,13 +65,13 @@ public class BiFunctionMapper implements BiFunction {
       @Override
       public void writeObject(ObjectOutput output, BiFunctionMapper object) throws IOException {
          output.writeObject(object.biFunction);
-         output.writeObject(object.encodingClasses);
+         EncodingClasses.writeTo(output, object.encodingClasses);
       }
 
       @Override
       public BiFunctionMapper readObject(ObjectInput input) throws IOException, ClassNotFoundException {
          return new BiFunctionMapper((BiFunction) input.readObject(),
-               (EncodingClasses) input.readObject());
+               EncodingClasses.readFrom(input));
       }
    }
 }

@@ -11,6 +11,7 @@ import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 import java.util.function.BiFunction;
 
+import org.infinispan.cache.impl.CacheEncoders;
 import org.infinispan.commands.FlagAffectedCommand;
 import org.infinispan.commands.ReplicableCommand;
 import org.infinispan.commands.TopologyAffectedCommand;
@@ -86,8 +87,8 @@ public class TxDistributionInterceptor extends BaseDistributionInterceptor {
 
    private PartitionHandlingManager partitionHandlingManager;
    private ComponentRegistry componentRegistry;
-
    private final TxReadOnlyManyHelper txReadOnlyManyHelper = new TxReadOnlyManyHelper();
+
    private final ReadWriteManyHelper readWriteManyHelper = new ReadWriteManyHelper();
    private final ReadWriteManyEntriesHelper readWriteManyEntriesHelper = new ReadWriteManyEntriesHelper();
 
@@ -433,7 +434,7 @@ public class TxDistributionInterceptor extends BaseDistributionInterceptor {
 
                List<Mutation> mutationsOnKey = getMutationsOnKey((TxInvocationContext) ctx, key);
                mutationsOnKey.add(command.toMutation(key));
-               TxReadOnlyKeyCommand remoteRead = new TxReadOnlyKeyCommand(key, mutationsOnKey, componentRegistry);
+               TxReadOnlyKeyCommand remoteRead = new TxReadOnlyKeyCommand(key, mutationsOnKey, command.getEncodingClasses(), componentRegistry);
 
                return asyncValue(rpcManager.invokeRemotelyAsync(owners, remoteRead, getStaggeredOptions(owners.size())).thenApply(responses -> {
                   for (Response r : responses.values()) {
@@ -491,7 +492,7 @@ public class TxDistributionInterceptor extends BaseDistributionInterceptor {
       if (!ctx.isInTxScope()) {
          return command;
       }
-      return new TxReadOnlyKeyCommand(command, getMutationsOnKey((TxInvocationContext) ctx, command.getKey()), componentRegistry);
+      return new TxReadOnlyKeyCommand(command, getMutationsOnKey((TxInvocationContext) ctx, command.getKey()), command.getEncodingClasses(), componentRegistry);
    }
 
    @Override
@@ -509,7 +510,8 @@ public class TxDistributionInterceptor extends BaseDistributionInterceptor {
       return cf.thenRun(() -> {
          entryFactory.wrapEntryForWriting(ctx, key, false, true);
          MVCCEntry cacheEntry = (MVCCEntry) ctx.lookupEntry(key);
-         EntryView.ReadWriteEntryView readWriteEntryView = EntryViews.readWrite(cacheEntry);
+         // TODO: ISPN-8090 support full cache encoding in tx cachese
+         EntryView.ReadWriteEntryView readWriteEntryView = EntryViews.readWrite(cacheEntry, CacheEncoders.EMPTY);
          for (Mutation mutation : mutationsOnKey) {
             mutation.apply(readWriteEntryView);
             cacheEntry.updatePreviousValue();
@@ -532,7 +534,7 @@ public class TxDistributionInterceptor extends BaseDistributionInterceptor {
          Object key = keysIterator.next();
          entryFactory.wrapEntryForWriting(ctx, key, false, true);
          MVCCEntry cacheEntry = (MVCCEntry) ctx.lookupEntry(key);
-         EntryView.ReadWriteEntryView readWriteEntryView = EntryViews.readWrite(cacheEntry);
+         EntryView.ReadWriteEntryView readWriteEntryView = EntryViews.readWrite(cacheEntry, CacheEncoders.EMPTY);
          for (Mutation mutation : mutationsIterator.next()) {
             mutation.apply(readWriteEntryView);
             cacheEntry.updatePreviousValue();
@@ -603,7 +605,7 @@ public class TxDistributionInterceptor extends BaseDistributionInterceptor {
          if (mutations == null) {
             return new ReadOnlyManyCommand<>(command, componentRegistry).withKeys(keys);
          } else {
-            return new TxReadOnlyManyCommand(command, mutations).withKeys(keys);
+            return new TxReadOnlyManyCommand(command, mutations, componentRegistry).withKeys(keys);
          }
       }
    }
@@ -629,7 +631,7 @@ public class TxDistributionInterceptor extends BaseDistributionInterceptor {
                list.add(mutation);
             }
          }
-         return new TxReadOnlyManyCommand(keys, mutations, componentRegistry);
+         return new TxReadOnlyManyCommand(keys, mutations, command.getEncodingClasses(), componentRegistry);
       }
 
       @Override

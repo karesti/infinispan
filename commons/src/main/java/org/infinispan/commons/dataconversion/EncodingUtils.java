@@ -1,5 +1,7 @@
 package org.infinispan.commons.dataconversion;
 
+import java.util.Objects;
+
 /**
  * Utilities to encode/decode keys and values from caches.
  *

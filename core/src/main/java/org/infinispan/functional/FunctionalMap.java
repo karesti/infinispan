@@ -86,8 +86,9 @@ public interface FunctionalMap<K, V> extends AutoCloseable {
    ComponentStatus getStatus();
 
    /**
-    * is encoded
+    * Tells if the underlying cache is using encoding or not
     *
+    * @return true if the underlying cache is encoded
     */
    default boolean isEncoded(){
       return false;

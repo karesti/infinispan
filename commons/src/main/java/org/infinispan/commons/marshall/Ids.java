@@ -187,8 +187,6 @@ public interface Ids {
 
    int MERGE_FUNCTION_MAPPER = 130;
 
-   int ENCODING_CLASSES = 131;
-
    int COUNTER_CONFIGURATION = 2000; //from counter
    int COUNTER_STATE = 2001; //from counter
 }

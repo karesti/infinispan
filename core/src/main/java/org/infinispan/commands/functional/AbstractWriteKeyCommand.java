@@ -17,7 +17,7 @@ public abstract class AbstractWriteKeyCommand<K, V> extends AbstractDataWriteCom
    ValueMatcher valueMatcher;
    boolean successful = true;
    EncodingClasses encodingClasses;
-   CacheEncoders cacheEncoders = new CacheEncoders();
+   CacheEncoders cacheEncoders = CacheEncoders.EMPTY;
 
    public AbstractWriteKeyCommand(K key, ValueMatcher valueMatcher,
                                   CommandInvocationId id, Params params) {
@@ -76,6 +76,11 @@ public abstract class AbstractWriteKeyCommand<K, V> extends AbstractDataWriteCom
             ", valueMatcher=" + valueMatcher +
             ", successful=" + successful +
             "}";
+   }
+
+   @Override
+   public EncodingClasses getEncodingClasses() {
+      return encodingClasses;
    }
 
    abstract public void init(ComponentRegistry componentRegistry);

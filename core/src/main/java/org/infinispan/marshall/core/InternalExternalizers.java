@@ -9,7 +9,6 @@ import org.infinispan.atomic.impl.AtomicMapProxyImpl;
 import org.infinispan.cache.impl.EncoderEntryMapper;
 import org.infinispan.cache.impl.EncoderKeyMapper;
 import org.infinispan.cache.impl.EncoderValueMapper;
-import org.infinispan.cache.impl.EncodingClasses;
 import org.infinispan.commands.RemoteCommandsFactory;
 import org.infinispan.commands.functional.functions.MergeFunction;
 import org.infinispan.commons.hash.MurmurHash3;
@@ -162,7 +161,6 @@ final class InternalExternalizers {
       addInternalExternalizer(new DldGlobalTransaction.Externalizer(), exts);
       addInternalExternalizer(new DoubleSummaryStatisticsExternalizer(), exts);
       addInternalExternalizer(new EmbeddedMetadata.Externalizer(), exts);
-      addInternalExternalizer(new EncodingClasses.Externalizer(), exts);
       addInternalExternalizer(new EntryViews.NoValueReadOnlyViewExternalizer(), exts);
       addInternalExternalizer(new EntryViews.ReadWriteSnapshotViewExternalizer(), exts);
       addInternalExternalizer(new EntryViews.ReadOnlySnapshotViewExternalizer(), exts);

@@ -338,7 +338,8 @@ public class BackupSenderImpl implements BackupSender {
             ReadWriteKeyCommand readWriteKeyCommand = (ReadWriteKeyCommand) writeCommand;
             filteredCommand = commandsFactory.buildReadWriteKeyCommand(readWriteKeyCommand.getKey(),
                   readWriteKeyCommand.getFunction(),
-                  readWriteKeyCommand.getParams());
+                  readWriteKeyCommand.getParams(),
+                  readWriteKeyCommand.getEncodingClasses());
          }
          filtered.add(filteredCommand);
       }

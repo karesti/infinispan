@@ -3,19 +3,22 @@ package org.infinispan.cache.impl;
 import java.io.IOException;
 import java.io.ObjectInput;
 import java.io.ObjectOutput;
-import java.io.Serializable;
-import java.util.Collections;
-import java.util.Set;
+import java.util.Objects;
 
 import org.infinispan.commons.dataconversion.Encoder;
 import org.infinispan.commons.dataconversion.Wrapper;
-import org.infinispan.commons.marshall.AdvancedExternalizer;
-import org.infinispan.commons.marshall.Ids;
 
 /**
- * Created by katiaaresti on 29/06/17.
+ * Wraps encoding classes and wrapping classes in a single object.
+ * <p>
+ * This class is final to prevent issues as it is usually not marshalled
+ * as polymorphic object but directly using {@link #writeTo(ObjectOutput, EncodingClasses)}
+ * and {@link #readFrom(ObjectInput)}.
+ *
+ * @author Katia Aresti, karesti@redhat.com
+ * @since 9.2
  */
-public class EncodingClasses implements Serializable {
+public final class EncodingClasses {
 
    private final Class<? extends Encoder> keyEncoderClass;
    private final Class<? extends Encoder> valueEncoderClass;
@@ -48,33 +51,58 @@ public class EncodingClasses implements Serializable {
       return valueWrapperClass;
    }
 
-   public static class Externalizer implements AdvancedExternalizer<EncodingClasses> {
+   public static EncodingClasses readFrom(ObjectInput input) throws ClassNotFoundException, IOException {
+      Class<? extends Encoder> encoderKey = (Class<? extends Encoder>) input.readObject();
+      Class<? extends Encoder> encoderValue = (Class<? extends Encoder>) input.readObject();
+      Class<? extends Wrapper> wrapperKey = (Class<? extends Wrapper>) input.readObject();
+      Class<? extends Wrapper> wrapperValue = (Class<? extends Wrapper>) input.readObject();
+      EncodingClasses encodingClasses = null;
+      if(encoderKey != null || encoderValue != null || wrapperKey != null || wrapperValue != null){
+         encodingClasses = new EncodingClasses(encoderKey, encoderValue, wrapperKey, wrapperValue);
+      }
+      return encodingClasses;
+   }
 
-      @Override
-      public Set<Class<? extends EncodingClasses>> getTypeClasses() {
-         return Collections.singleton(EncodingClasses.class);
+   public static void writeTo(ObjectOutput output, EncodingClasses encodingClasses) throws IOException {
+      if(encodingClasses == null) {
+         output.writeObject(null);
+         output.writeObject(null);
+         output.writeObject(null);
+         output.writeObject(null);
+      } else {
+         output.writeObject(encodingClasses.keyEncoderClass);
+         output.writeObject(encodingClasses.valueEncoderClass);
+         output.writeObject(encodingClasses.keyWrapperClass);
+         output.writeObject(encodingClasses.valueWrapperClass);
       }
 
-      @Override
-      public Integer getId() {
-         return Ids.ENCODING_CLASSES;
-      }
+   }
 
-      @Override
-      public void writeObject(ObjectOutput output, EncodingClasses object) throws IOException {
-         output.writeObject(object.keyEncoderClass);
-         output.writeObject(object.valueEncoderClass);
-         output.writeObject(object.keyWrapperClass);
-         output.writeObject(object.valueWrapperClass);
-      }
+   @Override
+   public boolean equals(Object o) {
+      if (this == o) return true;
+      if (o == null || getClass() != o.getClass()) return false;
 
-      @Override
-      public EncodingClasses readObject(ObjectInput input) throws IOException, ClassNotFoundException {
-         return new EncodingClasses(
-               (Class<? extends Encoder>) input.readObject(),
-               (Class<? extends Encoder>) input.readObject(),
-               (Class<? extends Wrapper>) input.readObject(),
-               (Class<? extends Wrapper>) input.readObject());
-      }
+      EncodingClasses that = (EncodingClasses) o;
+
+      return Objects.equals(keyEncoderClass, that.keyEncoderClass) &&
+            Objects.equals(valueEncoderClass, that.valueEncoderClass) &&
+            Objects.equals(keyWrapperClass, that.keyWrapperClass) &&
+            Objects.equals(valueWrapperClass, that.valueWrapperClass);
+   }
+
+   @Override
+   public int hashCode() {
+      return Objects.hash(keyEncoderClass, valueEncoderClass, keyWrapperClass, valueWrapperClass);
+   }
+
+   @Override
+   public String toString() {
+      return "EncodingClasses{" +
+            "keyEncoderClass=" + keyEncoderClass +
+            ", valueEncoderClass=" + valueEncoderClass +
+            ", keyWrapperClass=" + keyWrapperClass +
+            ", valueWrapperClass=" + valueWrapperClass +
+            '}';
    }
 }

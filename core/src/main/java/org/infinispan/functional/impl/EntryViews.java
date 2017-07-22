@@ -40,31 +40,19 @@ public final class EntryViews {
    }
 
    public static <K, V> ReadEntryView<K, V> readOnly(CacheEntry<K, V> entry) {
-      return new EntryBackedReadOnlyView<>(entry, new CacheEncoders());
+      return new EntryBackedReadOnlyView<>(entry, CacheEncoders.EMPTY);
    }
 
    public static <K, V> ReadEntryView<K, V> readOnly(K key, V value, Metadata metadata) {
       return new ReadOnlySnapshotView<>(key, value, metadata);
    }
 
-   public static <K, V> WriteEntryView<V> writeOnly(CacheEntry<K, V> entry) {
-      return new EntryBackedWriteOnlyView<>(entry, new CacheEncoders());
-   }
-
    public static <K, V> WriteEntryView<V> writeOnly(CacheEntry<K, V> entry, CacheEncoders cacheEncoders) {
       return new EntryBackedWriteOnlyView<>(entry, cacheEncoders);
    }
 
-   public static <K, V> ReadWriteEntryView<K, V> readWrite(CacheEntry<K, V> entry) {
-      return new EntryBackedReadWriteView<>(entry, new CacheEncoders());
-   }
-
    public static <K, V> ReadWriteEntryView<K, V> readWrite(CacheEntry<K, V> entry, CacheEncoders cacheEncoders) {
       return new EntryBackedReadWriteView<>(entry, cacheEncoders);
-   }
-
-   public static <K, V> ReadWriteEntryView<K, V> readWrite(CacheEntry<K, V> entry, V prevValue, Metadata prevMetadata) {
-      return new EntryAndPreviousReadWriteView<>(entry, prevValue, prevMetadata, new CacheEncoders());
    }
 
    public static <K, V> ReadWriteEntryView<K, V> readWrite(CacheEntry<K, V> entry, V prevValue, Metadata prevMetadata, CacheEncoders cacheEncoders) {
@@ -72,7 +60,7 @@ public final class EntryViews {
    }
 
    public static <K, V> ReadEntryView<K, V> noValue(K key) {
-      return new NoValueReadOnlyView<>(key, new CacheEncoders());
+      return new NoValueReadOnlyView<>(key, CacheEncoders.EMPTY);
    }
 
    public static <K, V> ReadEntryView<K, V> noValue(K key, CacheEncoders cacheEncoders) {
@@ -92,7 +80,7 @@ public final class EntryViews {
     * cached entry and avoid changing underneath.
     */
    @SuppressWarnings("unchecked")
-   public static <R> R snapshot(R ret, CacheEncoders cacheEncoders) {
+   public static <R> R snapshot(R ret) {
       if (ret instanceof EntryBackedReadWriteView) {
          EntryBackedReadWriteView view = (EntryBackedReadWriteView) ret;
          return (R) new ReadWriteSnapshotView(view.key(), view.find().orElse(null), view.entry.getMetadata());
@@ -107,7 +95,7 @@ public final class EntryViews {
          return (R) new ReadOnlySnapshotView(view.key(), null, null);
       }
 
-      return (R) cacheEncoders.valueFromStorage(ret);
+      return ret;
    }
 
    private static final class EntryBackedReadOnlyView<K, V> implements ReadEntryView<K, V> {
@@ -289,10 +277,10 @@ public final class EntryViews {
 
       private void setEntry(V value) {
          Object valueEncoded = cacheEncoders.valueToStorage(value);
-         entry.setCreated(entry.getValue() == null && value != null);
+         entry.setCreated(entry.getValue() == null && valueEncoded != null);
          entry.setValue(valueEncoded);
          entry.setChanged(true);
-         entry.setRemoved(value == null);
+         entry.setRemoved(valueEncoded == null);
       }
 
       @Override
@@ -386,8 +374,8 @@ public final class EntryViews {
          Object valueEncoded = cacheEncoders.valueToStorage(value);
          entry.setValue(valueEncoded);
          entry.setChanged(true);
-         entry.setRemoved(value == null);
-         entry.setCreated(prevValue == null && value != null);
+         entry.setRemoved(valueEncoded == null);
+         entry.setCreated(prevValue == null && valueEncoded != null);
       }
 
       @Override
@@ -418,7 +406,7 @@ public final class EntryViews {
       @Override
       public V get() throws NoSuchElementException {
          if (prevValue == null) throw new NoSuchElementException();
-         return prevValue;
+         return (V) cacheEncoders.valueFromStorage(prevValue);
       }
 
       @Override
@@ -549,6 +537,7 @@ public final class EntryViews {
       if (metas.length != 0) {
          metaParams.addMany(metas);
       }
+
       updateMetadata(entry, MetaParamsInternalMetadata.from(metaParams));
    }
 
@@ -612,7 +601,7 @@ public final class EntryViews {
 
       @Override
       public NoValueReadOnlyView readObject(ObjectInput input) throws IOException, ClassNotFoundException {
-         return new NoValueReadOnlyView(input.readObject(), new CacheEncoders());
+         return new NoValueReadOnlyView(input.readObject(), CacheEncoders.EMPTY);
       }
    }
 

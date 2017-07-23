@@ -32,15 +32,6 @@ public final class WriteOnlyKeyCommand<K, V> extends AbstractWriteKeyCommand<K, 
                               Consumer<WriteEntryView<V>> f,
                               CommandInvocationId id,
                               ValueMatcher valueMatcher,
-                              Params params) {
-      super(key, valueMatcher, id, params);
-      this.f = f;
-   }
-
-   public WriteOnlyKeyCommand(K key,
-                              Consumer<WriteEntryView<V>> f,
-                              CommandInvocationId id,
-                              ValueMatcher valueMatcher,
                               Params params,
                               EncodingClasses encodingClasses,
                               ComponentRegistry componentRegistry) {

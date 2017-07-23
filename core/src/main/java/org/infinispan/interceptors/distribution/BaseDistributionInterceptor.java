@@ -919,12 +919,12 @@ public abstract class BaseDistributionInterceptor extends ClusteringInterceptor 
 
       @Override
       public ReadOnlyManyCommand copyForLocal(ReadOnlyManyCommand command, List<Object> keys) {
-         return new ReadOnlyManyCommand(command, componentRegistry).withKeys(keys);
+         return new ReadOnlyManyCommand(command).withKeys(keys);
       }
 
       @Override
       public ReplicableCommand copyForRemote(ReadOnlyManyCommand command, List<Object> keys, InvocationContext ctx) {
-         return new ReadOnlyManyCommand(command, componentRegistry).withKeys(keys);
+         return new ReadOnlyManyCommand(command).withKeys(keys);
       }
 
       @Override

@@ -49,12 +49,12 @@ public final class ReadWriteManyEntriesCommand<K, V, R> extends AbstractWriteMan
       init(componentRegistry);
    }
 
-   public ReadWriteManyEntriesCommand(ReadWriteManyEntriesCommand command, ComponentRegistry componentRegistry) {
+   public ReadWriteManyEntriesCommand(ReadWriteManyEntriesCommand command) {
       super(command);
       this.entries = command.entries;
       this.f = command.f;
       this.encodingClasses = command.encodingClasses;
-      init(componentRegistry);
+      this.cacheEncoders = command.cacheEncoders;
    }
 
    public ReadWriteManyEntriesCommand() {

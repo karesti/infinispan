@@ -184,7 +184,7 @@ public class TxDistributionInterceptor extends BaseDistributionInterceptor {
 
    @Override
    public Object visitWriteOnlyManyEntriesCommand(InvocationContext ctx, WriteOnlyManyEntriesCommand command) throws Throwable {
-      return handleTxWriteManyEntriesCommand(ctx, command, command.getEntries(), (c, entries) -> new WriteOnlyManyEntriesCommand(c, componentRegistry).withEntries(entries));
+      return handleTxWriteManyEntriesCommand(ctx, command, command.getEntries(), (c, entries) -> new WriteOnlyManyEntriesCommand(c).withEntries(entries));
    }
 
    @Override
@@ -194,7 +194,7 @@ public class TxDistributionInterceptor extends BaseDistributionInterceptor {
 
    @Override
    public Object visitWriteOnlyManyCommand(InvocationContext ctx, WriteOnlyManyCommand command) throws Throwable {
-      return handleTxWriteManyCommand(ctx, command, command.getAffectedKeys(), (c, keys) -> new WriteOnlyManyCommand(c, componentRegistry).withKeys(keys));
+      return handleTxWriteManyCommand(ctx, command, command.getAffectedKeys(), (c, keys) -> new WriteOnlyManyCommand(c).withKeys(keys));
    }
 
    @Override
@@ -212,7 +212,7 @@ public class TxDistributionInterceptor extends BaseDistributionInterceptor {
          return handleFunctionalReadManyCommand(ctx, command, readWriteManyEntriesHelper);
       } else {
          return handleTxWriteManyEntriesCommand(ctx, command, command.getEntries(),
-               (c, entries) -> new ReadWriteManyEntriesCommand<>(c, componentRegistry).withEntries(entries));
+               (c, entries) -> new ReadWriteManyEntriesCommand<>(c).withEntries(entries));
       }
    }
 
@@ -510,7 +510,7 @@ public class TxDistributionInterceptor extends BaseDistributionInterceptor {
       return cf.thenRun(() -> {
          entryFactory.wrapEntryForWriting(ctx, key, false, true);
          MVCCEntry cacheEntry = (MVCCEntry) ctx.lookupEntry(key);
-         // TODO: ISPN-8090 support full cache encoding in tx cachese
+         // TODO: ISPN-8090 support full cache encoding in tx cache
          EntryView.ReadWriteEntryView readWriteEntryView = EntryViews.readWrite(cacheEntry, CacheEncoders.EMPTY);
          for (Mutation mutation : mutationsOnKey) {
             mutation.apply(readWriteEntryView);
@@ -603,9 +603,9 @@ public class TxDistributionInterceptor extends BaseDistributionInterceptor {
       public ReplicableCommand copyForRemote(ReadOnlyManyCommand command, List<Object> keys, InvocationContext ctx) {
          List<List<Mutation>> mutations = getMutations(ctx, keys);
          if (mutations == null) {
-            return new ReadOnlyManyCommand<>(command, componentRegistry).withKeys(keys);
+            return new ReadOnlyManyCommand<>(command).withKeys(keys);
          } else {
-            return new TxReadOnlyManyCommand(command, mutations, componentRegistry).withKeys(keys);
+            return new TxReadOnlyManyCommand(command, mutations).withKeys(keys);
          }
       }
    }
@@ -656,14 +656,14 @@ public class TxDistributionInterceptor extends BaseDistributionInterceptor {
    private class ReadWriteManyHelper extends BaseFunctionalWriteHelper<ReadWriteManyCommand> {
       @Override
       public ReadWriteManyCommand copyForLocal(ReadWriteManyCommand command, List<Object> keys) {
-         return new ReadWriteManyCommand(command, componentRegistry).withKeys(keys);
+         return new ReadWriteManyCommand(command).withKeys(keys);
       }
    }
 
    private class ReadWriteManyEntriesHelper extends BaseFunctionalWriteHelper<ReadWriteManyEntriesCommand> {
       @Override
       public ReadWriteManyEntriesCommand copyForLocal(ReadWriteManyEntriesCommand command, List<Object> keys) {
-         return new ReadWriteManyEntriesCommand(command, componentRegistry).withEntries(filterEntries(command.getEntries(), keys));
+         return new ReadWriteManyEntriesCommand(command).withEntries(filterEntries(command.getEntries(), keys));
       }
 
       private  <K, V> Map<K, V> filterEntries(Map<K, V> originalEntries, List<K> keys) {

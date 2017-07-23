@@ -41,12 +41,12 @@ public final class WriteOnlyManyCommand<K, V> extends AbstractWriteManyCommand<K
       init(componentRegistry);
    }
 
-   public WriteOnlyManyCommand(WriteOnlyManyCommand<K, V> command, ComponentRegistry componentRegistry) {
+   public WriteOnlyManyCommand(WriteOnlyManyCommand<K, V> command) {
       super(command);
       this.keys = command.keys;
       this.f = command.f;
       this.encodingClasses = command.encodingClasses;
-      init(componentRegistry);
+      this.cacheEncoders = command.cacheEncoders;
    }
 
    @Inject

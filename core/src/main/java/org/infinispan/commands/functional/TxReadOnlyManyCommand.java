@@ -34,10 +34,9 @@ public class TxReadOnlyManyCommand<K, V, R> extends ReadOnlyManyCommand<K, V, R>
       initTxCommand(componentRegistry);
    }
 
-   public TxReadOnlyManyCommand(ReadOnlyManyCommand c, List<List<Mutation<K, V, ?>>> mutations, ComponentRegistry componentRegistry) {
-      super(c, componentRegistry);
+   public TxReadOnlyManyCommand(ReadOnlyManyCommand c, List<List<Mutation<K, V, ?>>> mutations) {
+      super(c);
       this.mutations = mutations;
-      initTxCommand(componentRegistry);
    }
 
    private void initTxCommand(ComponentRegistry componentRegistry){

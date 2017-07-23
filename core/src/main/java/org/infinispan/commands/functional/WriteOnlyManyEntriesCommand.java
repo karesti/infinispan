@@ -40,12 +40,12 @@ public final class WriteOnlyManyEntriesCommand<K, V> extends AbstractWriteManyCo
       init(componentRegistry);
    }
 
-   public WriteOnlyManyEntriesCommand(WriteOnlyManyEntriesCommand<K, V> command, ComponentRegistry componentRegistry) {
+   public WriteOnlyManyEntriesCommand(WriteOnlyManyEntriesCommand<K, V> command) {
       super(command);
       this.entries = command.entries;
       this.f = command.f;
       this.encodingClasses = command.encodingClasses;
-      init(componentRegistry);
+      this.cacheEncoders = command.cacheEncoders;
    }
 
    public WriteOnlyManyEntriesCommand() {

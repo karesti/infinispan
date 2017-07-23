@@ -49,13 +49,13 @@ public class ReadOnlyManyCommand<K, V, R> extends AbstractTopologyAffectedComman
    public ReadOnlyManyCommand() {
    }
 
-   public ReadOnlyManyCommand(ReadOnlyManyCommand c, ComponentRegistry componentRegistry) {
+   public ReadOnlyManyCommand(ReadOnlyManyCommand c) {
       this.keys = c.keys;
       this.f = c.f;
       this.params = c.params;
       this.setFlagsBitSet(c.getFlagsBitSet());
       this.encodingClasses = c.encodingClasses;
-      init(componentRegistry);
+      this.cacheEncoders = c.cacheEncoders;
    }
 
    public void init(ComponentRegistry componentRegistry) {

@@ -65,7 +65,7 @@ public class EmbeddedClusteredLockManager implements ClusteredLockManager {
       cache = cacheHolder.getClusteredLockCache();
       ClusteredLockKey key = new ClusteredLockKey(ByteString.fromString(name));
       ClusteredLockValue clusteredLockValue = cache.putIfAbsent(key, ClusteredLockValue.INITIAL_STATE);
-      locks.putIfAbsent(name, new ClusteredLockImpl(name, key, cache, this));
+      locks.putIfAbsent(name, new ClusteredLockImpl(key, cache, this));
       return clusteredLockValue == null;
    }
 
@@ -80,7 +80,7 @@ public class EmbeddedClusteredLockManager implements ClusteredLockManager {
          if (!cache.containsKey(key)) {
             throw new ClusteredLockException(String.format("Lock does %s not exist", name));
          }
-         return new ClusteredLockImpl(k, key, cache, this);
+         return new ClusteredLockImpl(key, cache, this);
       });
    }
 

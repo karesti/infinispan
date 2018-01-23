@@ -25,6 +25,7 @@ public class ClusteredLockImpl implements ClusteredLock {
    private final ClusteredLockKey lockKey;
    private final EmbeddedClusteredLockManager clusteredLockManager;
    private final Object originator;
+   private final FunctionalMap.ReadWriteMap<ClusteredLockKey, ClusteredLockValue> readWriteMap;
 
    public ClusteredLockImpl(ClusteredLockKey lockKey,
                             AdvancedCache<ClusteredLockKey, ClusteredLockValue> clusteredLockCache,
@@ -32,16 +33,17 @@ public class ClusteredLockImpl implements ClusteredLock {
       this.clusteredLockManager = clusteredLockManager;
       this.lockKey = lockKey;
       this.originator = clusteredLockCache.getCacheManager().getAddress();
+      readWriteMap = ReadWriteMapImpl.create(FunctionalMapImpl.create(clusteredLockCache));
    }
 
    @Override
    public CompletableFuture<Boolean> tryLock() {
-      return null;
+      return readWriteMap.eval(lockKey, new LockFunction(createRequestId(), originator));
    }
 
    @Override
    public CompletableFuture<Void> unlock() {
-      return null;
+      return readWriteMap.eval(lockKey, new UnlockFunction(originator));
    }
 
    @Override

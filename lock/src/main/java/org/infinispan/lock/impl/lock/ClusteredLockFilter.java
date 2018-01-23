@@ -25,8 +25,8 @@ public class ClusteredLockFilter implements KeyFilter<ClusteredLockKey> {
 
    private final ClusteredLockKey name;
 
-   public ClusteredLockFilter(ClusteredLockKey name) {
-      this.name = name;
+   public ClusteredLockFilter(ClusteredLockKey clusteredLockKey) {
+      this.name = clusteredLockKey;
    }
 
    @Override

@@ -7,6 +7,7 @@ import java.util.concurrent.CompletionStage;
 import org.infinispan.api.client.listener.ClientKeyValueStoreListener;
 import org.infinispan.api.store.KeyValueEntry;
 import org.infinispan.api.store.KeyValueStore;
+import org.infinispan.api.store.SinglePublisher;
 import org.infinispan.api.store.WriteResult;
 import org.infinispan.api.store.client.impl.listener.ClientListenerImpl;
 import org.infinispan.api.store.listener.KeyValueStoreListener;
@@ -16,6 +17,7 @@ import org.infinispan.client.hotrod.Search;
 import org.infinispan.query.api.continuous.ContinuousQuery;
 import org.infinispan.query.dsl.Query;
 import org.infinispan.query.dsl.QueryFactory;
+import org.reactivestreams.FlowAdapters;
 import org.reactivestreams.Publisher;
 
 import io.reactivex.Flowable;
@@ -37,24 +39,23 @@ public class KeyValueStoreImpl<K, V> implements KeyValueStore<K, V> {
    }
 
    @Override
-   public CompletionStage<V> get(K key) {
-      return cache.getAsync(key);
+   public SinglePublisher<V> get(K key) {
+      return new AsyncSinglePublisher<>(() -> cache.getAsync(key));
    }
 
    @Override
-   public CompletionStage<Boolean> insert(K key, V value) {
-      return cacheReturnValues.putIfAbsentAsync(key, value).thenApply(v -> v == null);
+   public SinglePublisher<Void> insert(K key, V value) {
+      return new AsyncSinglePublisher<>(() -> cache.putIfAbsentAsync(key, value).thenApply(r -> null));
    }
 
    @Override
-   public CompletionStage<Void> save(K key, V value) {
-      // We don't return the value here
-      return cache.putAsync(key, value).thenApply(v -> null);
+   public SinglePublisher<Void> save(K key, V value) {
+      return new AsyncSinglePublisher<>(() -> cache.putAsync(key, value).thenApply(r -> null));
    }
 
    @Override
-   public CompletionStage<Void> delete(K key) {
-      return cache.removeAsync(key).thenApply(v -> null);
+   public SinglePublisher<V> delete(K key) {
+      return new AsyncSinglePublisher<>(() -> cache.removeAsync(key));
    }
 
    @Override
@@ -90,13 +91,13 @@ public class KeyValueStoreImpl<K, V> implements KeyValueStore<K, V> {
    }
 
    @Override
-   public CompletionStage<Long> estimateSize() {
-      return CompletableFuture.supplyAsync(() -> Long.valueOf(cache.size()));
+   public SinglePublisher<Long> estimateSize() {
+      return new AsyncSinglePublisher<>(() ->  CompletableFuture.supplyAsync(() -> Long.valueOf(cache.size())));
    }
 
    @Override
-   public CompletionStage<Void> clear() {
-      return cache.clearAsync();
+   public SinglePublisher<Void> clear() {
+      return new AsyncSinglePublisher<>(() -> cache.clearAsync());
    }
 
    @Override

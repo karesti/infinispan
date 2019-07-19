@@ -28,7 +28,7 @@ public interface KeyValueStore<K, V> {
     * @param key
     * @return the value
     */
-   CompletionStage<V> get(K key);
+   SinglePublisher<V> get(K key);
 
    /**
     * Insert the key/value if such key does not exist
@@ -37,7 +37,7 @@ public interface KeyValueStore<K, V> {
     * @param value
     * @return Boolean. true if insert worked
     */
-   CompletionStage<Boolean> insert(K key, V value);
+   SinglePublisher<Void> insert(K key, V value);
 
    /**
     * Save the key/value. If the key exists will replace the value
@@ -46,7 +46,7 @@ public interface KeyValueStore<K, V> {
     * @param value
     * @return Void
     */
-   CompletionStage<Void> save(K key, V value);
+   SinglePublisher<Void> save(K key, V value);
 
    /**
     * Delete the key
@@ -54,7 +54,7 @@ public interface KeyValueStore<K, V> {
     * @param key
     * @return Void
     */
-   CompletionStage<Void> delete(K key);
+   SinglePublisher<V> delete(K key);
 
    /**
     * Retrieve all keys
@@ -83,14 +83,14 @@ public interface KeyValueStore<K, V> {
     *
     * @return Long, estimated size
     */
-   CompletionStage<Long> estimateSize();
+   SinglePublisher<Long> estimateSize();
 
    /**
     * Clear the store. If a concurrent operation puts data in the store the clear might not properly work
     *
     * @return Void
     */
-   CompletionStage<Void> clear();
+   SinglePublisher<Void> clear();
 
    /**
     * Executes the query and returns a store streams Publisher with the results

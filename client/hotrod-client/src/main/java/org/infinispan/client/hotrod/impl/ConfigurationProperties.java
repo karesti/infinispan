@@ -550,4 +550,11 @@ public class ConfigurationProperties {
    public void setJavaSerialWhitelist(String javaSerialWhitelist) {
       props.setProperty(JAVA_SERIAL_WHITELIST, javaSerialWhitelist);
    }
+   public String getJavaSerialWhitelist() {
+      return props.getProperty(JAVA_SERIAL_WHITELIST);
+   }
+
+   public String getAuthServerName() {
+      return props.getProperty(AUTH_SERVER_NAME);
+   }
 }

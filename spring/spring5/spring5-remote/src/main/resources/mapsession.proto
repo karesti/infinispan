@@ -1,0 +1,6 @@
+package spring_integration;
+
+message MapSession {
+ optional string id = 1;
+ optional string originalId = 2;
+}

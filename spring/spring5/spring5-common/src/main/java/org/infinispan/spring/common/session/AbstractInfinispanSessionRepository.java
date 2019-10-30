@@ -66,6 +66,7 @@ public abstract class AbstractInfinispanSessionRepository implements FindByIndex
 
    @Override
    public void save(MapSession session) {
+
       if (!session.getId().equals(session.getOriginalId())) {
          removeFromCacheWithoutNotifications(session.getOriginalId());
       }

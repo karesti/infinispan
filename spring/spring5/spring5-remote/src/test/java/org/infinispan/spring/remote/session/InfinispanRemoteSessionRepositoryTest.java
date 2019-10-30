@@ -31,9 +31,7 @@ public class InfinispanRemoteSessionRepositoryTest extends InfinispanSessionRepo
       embeddedCacheManager = TestCacheManagerFactory.createCacheManager(cacheConfiguration);
       hotrodServer = HotRodTestingUtil.startHotRodServer(embeddedCacheManager, 19723);
       ConfigurationBuilder builder = new ConfigurationBuilder();
-      builder.addServer().host("localhost").port(hotrodServer.getPort())
-            .marshaller(new JavaSerializationMarshaller())
-            .addJavaSerialWhiteList(SPRING_JAVA_SERIAL_WHITELIST.split(","));
+      builder.addServer().host("localhost").port(hotrodServer.getPort());
       remoteCacheManager = new RemoteCacheManager(builder.build());
    }
 

@@ -4,36 +4,27 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.lang.invoke.MethodHandles;
 import java.net.InetSocketAddress;
-import java.util.Arrays;
 import java.util.Collection;
-import java.util.Collections;
-import java.util.HashSet;
 import java.util.Properties;
-import java.util.Set;
 
 import org.infinispan.client.hotrod.RemoteCacheManager;
-import org.infinispan.client.hotrod.impl.ConfigurationProperties;
 import org.infinispan.commons.logging.Log;
 import org.infinispan.commons.logging.LogFactory;
-import org.infinispan.commons.marshall.JavaSerializationMarshaller;
-import org.infinispan.commons.util.Util;
 import org.springframework.core.io.Resource;
 
 /**
  * <p>
- * An abstract base class for factories creating cache manager that are backed by an Infinispan
- * RemoteCacheManager.
+ * An abstract base class for factories creating cache manager that are backed by an Infinispan RemoteCacheManager.
  * </p>
  *
  * @author <a href="mailto:olaf DOT bergner AT gmx DOT de">Olaf Bergner</a>
- *
  * @see RemoteCacheManager
  */
 public abstract class AbstractRemoteCacheManagerFactory {
 
    protected static final Log logger = LogFactory.getLog(MethodHandles.lookup().lookupClass());
 
-   public static final String SPRING_JAVA_SERIAL_WHITELIST = "java.time.*,org.springframework.*,org.infinispan.spring.*";
+   public static final String SPRING_JAVA_SERIAL_WHITELIST = "java.time.*,org.springframework.session.MapSession";
 
    protected boolean startAutomatically = true;
 
@@ -62,15 +53,15 @@ public abstract class AbstractRemoteCacheManagerFactory {
       if (this.configurationProperties != null) {
          answer = this.configurationPropertiesOverrides.override(this.configurationProperties);
          this.logger.debug("Using user-defined properties [" + this.configurationProperties
-                                 + "] for configuring RemoteCacheManager");
+               + "] for configuring RemoteCacheManager");
       } else if (this.configurationPropertiesFileLocation != null) {
          answer = loadPropertiesFromFile(this.configurationPropertiesFileLocation);
          this.logger.debug("Loading properties from file [" + this.configurationProperties
-                                 + "] for configuring RemoteCacheManager");
+               + "] for configuring RemoteCacheManager");
       } else if (!this.configurationPropertiesOverrides.isEmpty()) {
          answer = this.configurationPropertiesOverrides.override(new Properties());
          this.logger.debug("Using explicitly set configuration settings [" + answer
-                                 + "] for configuring RemoteCacheManager");
+               + "] for configuring RemoteCacheManager");
       } else {
          this.logger
                .debug("No configuration properties. RemoteCacheManager will use default configuration.");
@@ -78,38 +69,10 @@ public abstract class AbstractRemoteCacheManagerFactory {
          try {
             answer = remoteCacheManager.getConfiguration().properties();
          } finally {
-           remoteCacheManager.stop();
+            remoteCacheManager.stop();
          }
       }
-      initializeMarshallingProperties(answer);
       return answer;
-   }
-
-   private void initializeMarshallingProperties(Properties properties) {
-      // If the property has already been overridden, we don't apply any default behaviour
-      if (!configurationPropertiesOverrides.containsProperty(ConfigurationProperties.MARSHALLER)) {
-         String marshaller = JavaSerializationMarshaller.class.getName();
-         String configuredMarshaller = properties.getProperty(ConfigurationProperties.MARSHALLER);
-         if (configuredMarshaller != null && configuredMarshaller.equals(Util.GENERIC_JBOSS_MARSHALLING_CLASS)) {
-            // If the marshaller is equal to the legacy jboss-marshaller, and infinispan-jboss-marshalling is on the cp, allow
-            if (Util.getJBossMarshaller(Thread.currentThread().getContextClassLoader(), null) != null)
-               marshaller = configuredMarshaller;
-         }
-         properties.setProperty(ConfigurationProperties.MARSHALLER, marshaller);
-      }
-
-      if (!configurationPropertiesOverrides.containsProperty(ConfigurationProperties.JAVA_SERIAL_WHITELIST)) {
-         String whiteList;
-         String userWhiteList = properties.getProperty(ConfigurationProperties.JAVA_SERIAL_WHITELIST);
-         if (userWhiteList == null || userWhiteList.isEmpty()) {
-            whiteList = String.join(",", SPRING_JAVA_SERIAL_WHITELIST);
-         } else {
-            Set<String> userRegexSet = new HashSet<>(Arrays.asList(SPRING_JAVA_SERIAL_WHITELIST.split(",")));
-            Collections.addAll(userRegexSet, userWhiteList.split(","));
-            whiteList = String.join(",", userRegexSet);
-         }
-         properties.setProperty(ConfigurationProperties.JAVA_SERIAL_WHITELIST, whiteList);
-      }
    }
 
    private Properties loadPropertiesFromFile(final Resource propertiesFileLocation)
@@ -139,16 +102,14 @@ public abstract class AbstractRemoteCacheManagerFactory {
    // ------------------------------------------------------------------------
 
    /**
-    * @param configurationProperties
-    *           the configurationProperties to set
+    * @param configurationProperties the configurationProperties to set
     */
    public void setConfigurationProperties(final Properties configurationProperties) {
       this.configurationProperties = configurationProperties;
    }
 
    /**
-    * @param configurationPropertiesFileLocation
-    *           the configurationPropertiesFileLocation to set
+    * @param configurationPropertiesFileLocation the configurationPropertiesFileLocation to set
     */
    public void setConfigurationPropertiesFileLocation(
          final Resource configurationPropertiesFileLocation) {
@@ -156,8 +117,7 @@ public abstract class AbstractRemoteCacheManagerFactory {
    }
 
    /**
-    * @param startAutomatically
-    *           the startAutomatically to set
+    * @param startAutomatically the startAutomatically to set
     */
    public void setStartAutomatically(final boolean startAutomatically) {
       this.startAutomatically = startAutomatically;

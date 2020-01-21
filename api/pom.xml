@@ -13,8 +13,9 @@
     <description>Infinispan API</description>
     <dependencies>
         <dependency>
-            <groupId>org.reactivestreams</groupId>
-            <artifactId>reactive-streams</artifactId>
+            <groupId>io.smallrye.reactive</groupId>
+            <artifactId>mutiny</artifactId>
+            <version>0.3.1</version>
         </dependency>
     </dependencies>
 </project>

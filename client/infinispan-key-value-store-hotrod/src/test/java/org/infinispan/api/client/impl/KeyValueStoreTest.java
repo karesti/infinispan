@@ -9,9 +9,9 @@ import static org.testng.AssertJUnit.assertTrue;
 import java.util.AbstractMap;
 
 import org.infinispan.api.Infinispan;
-import org.infinispan.api.reactive.KeyValueStore;
-import org.infinispan.api.reactive.KeyValueStoreConfig;
-import org.infinispan.api.reactive.WriteResult;
+import org.infinispan.api.collection.KeyValueStore;
+import org.infinispan.api.collection.KeyValueStoreConfig;
+import org.infinispan.api.collection.WriteResult;
 import org.infinispan.client.hotrod.test.HotRodClientTestingUtil;
 import org.infinispan.client.hotrod.test.SingleHotRodServerTest;
 import org.infinispan.commons.api.CacheContainerAdmin;

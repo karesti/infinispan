@@ -1,4 +1,4 @@
-package org.infinispan.api.reactive.client.impl;
+package org.infinispan.api.collection.client.impl;
 
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
@@ -9,6 +9,7 @@ import org.reactivestreams.Publisher;
 import org.reactivestreams.Subscriber;
 
 import io.reactivex.Flowable;
+import io.smallrye.mutiny.Multi;
 
 /**
  * Implements {@link Publisher<T>} interface for client/server mode.
@@ -40,5 +41,9 @@ public class QueryPublisherImpl<T> implements Publisher<T> {
                   flowable.subscribe(subscriber);
                }
             });
+   }
+
+   public Multi<T> toMulti() {
+      return Multi.createFrom().publisher(this);
    }
 }

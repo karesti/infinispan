@@ -16,11 +16,11 @@ import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
 import org.infinispan.api.Infinispan;
-import org.infinispan.api.reactive.KeyValueEntry;
-import org.infinispan.api.reactive.KeyValueStore;
-import org.infinispan.api.reactive.KeyValueStoreConfig;
-import org.infinispan.api.reactive.query.ContinuousQueryRequestBuilder;
-import org.infinispan.api.reactive.query.QueryRequest;
+import org.infinispan.api.collection.KeyValueEntry;
+import org.infinispan.api.collection.KeyValueStore;
+import org.infinispan.api.collection.KeyValueStoreConfig;
+import org.infinispan.api.collection.query.ContinuousQueryRequestBuilder;
+import org.infinispan.api.collection.query.QueryRequest;
 import org.infinispan.client.hotrod.RemoteCacheManager;
 import org.infinispan.client.hotrod.configuration.Configuration;
 import org.infinispan.client.hotrod.configuration.ConfigurationBuilder;

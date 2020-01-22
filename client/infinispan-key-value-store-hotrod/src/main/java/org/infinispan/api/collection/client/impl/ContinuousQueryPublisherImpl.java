@@ -1,7 +1,7 @@
-package org.infinispan.api.reactive.client.impl;
+package org.infinispan.api.collection.client.impl;
 
-import org.infinispan.api.reactive.EntryStatus;
-import org.infinispan.api.reactive.KeyValueEntry;
+import org.infinispan.api.collection.EntryStatus;
+import org.infinispan.api.collection.KeyValueEntry;
 import org.infinispan.client.hotrod.logging.Log;
 import org.infinispan.commons.logging.LogFactory;
 import org.infinispan.query.api.continuous.ContinuousQuery;
@@ -12,6 +12,7 @@ import org.reactivestreams.Subscriber;
 
 import io.reactivex.Flowable;
 import io.reactivex.processors.UnicastProcessor;
+import io.smallrye.mutiny.Multi;
 
 /**
  * Implements the {@link Publisher<KeyValueEntry<K, V>>} using RXJava and Flowable API.
@@ -77,5 +78,9 @@ public class ContinuousQueryPublisherImpl<K, V> implements Publisher<KeyValueEnt
                processor.onNext(new KeyValueEntry<>(key, null, EntryStatus.DELETED));
          }
       };
+   }
+
+   public Multi<KeyValueEntry<K, V>> toMulti() {
+      return Multi.createFrom().publisher(this);
    }
 }

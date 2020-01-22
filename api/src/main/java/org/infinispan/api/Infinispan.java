@@ -4,8 +4,8 @@ import java.util.concurrent.CompletionStage;
 
 import org.infinispan.api.configuration.ClientConfig;
 import org.infinispan.api.configuration.EmbeddedConfig;
-import org.infinispan.api.reactive.KeyValueStore;
-import org.infinispan.api.reactive.KeyValueStoreConfig;
+import org.infinispan.api.collection.KeyValueStore;
+import org.infinispan.api.collection.KeyValueStoreConfig;
 
 /**
  * Infinispan instance, embedded or client, depending on the access point.

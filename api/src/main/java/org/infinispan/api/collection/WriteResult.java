@@ -1,4 +1,4 @@
-package org.infinispan.api.reactive;
+package org.infinispan.api.collection;
 
 import org.infinispan.api.Experimental;
 

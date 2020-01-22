@@ -1,4 +1,4 @@
-package org.infinispan.api.reactive.query;
+package org.infinispan.api.collection.query;
 
 import java.util.HashMap;
 import java.util.Map;

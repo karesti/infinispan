@@ -1,19 +1,18 @@
-package org.infinispan.api.reactive;
+package org.infinispan.api.collection;
 
 import java.util.Map;
-import java.util.concurrent.CompletionStage;
 
 import org.infinispan.api.Experimental;
-import org.infinispan.api.reactive.listener.KeyValueStoreListener;
-import org.infinispan.api.reactive.query.QueryRequest;
+import org.infinispan.api.collection.listener.KeyValueStoreListener;
+import org.infinispan.api.collection.query.QueryRequest;
 import org.reactivestreams.Publisher;
+
+import io.smallrye.mutiny.Multi;
+import io.smallrye.mutiny.Uni;
 
 /**
  * A Reactive Key Value Store provides a highly concurrent and distributed data structure, non blocking and using
- * reactive streams.
- * <p>
- *
- * </p>
+ * reactive streams and <a href="https://smallrye.io/smallrye-mutiny/">Mutiny</a>.
  *
  * @author Katia Aresti, karesti@redhat.com
  * @see <a href="http://www.infinispan.org">Infinispan documentation</a>
@@ -28,7 +27,7 @@ public interface KeyValueStore<K, V> {
     * @param key
     * @return the value
     */
-   CompletionStage<V> get(K key);
+   Uni<V> get(K key);
 
    /**
     * Insert the key/value if such key does not exist
@@ -37,7 +36,7 @@ public interface KeyValueStore<K, V> {
     * @param value
     * @return Void
     */
-   CompletionStage<Boolean> insert(K key, V value);
+   Uni<Boolean> insert(K key, V value);
 
    /**
     * Save the key/value. If the key exists will replace the value
@@ -46,7 +45,7 @@ public interface KeyValueStore<K, V> {
     * @param value
     * @return Void
     */
-   CompletionStage<Void> save(K key, V value);
+   Uni<Void> save(K key, V value);
 
    /**
     * Delete the key
@@ -54,43 +53,35 @@ public interface KeyValueStore<K, V> {
     * @param key
     * @return Void
     */
-   CompletionStage<Void> delete(K key);
+   Uni<Void> delete(K key);
 
    /**
     * Retrieve all keys
     *
     * @return Publisher
     */
-   Publisher<K> keys();
+   Multi<K> keys();
 
    /**
     * Retrieve all entries
     *
     * @return
     */
-   Publisher<? extends Map.Entry<K, V>> entries();
-
-   /**
-    * Save many from a Publisher
-    *
-    * @param pairs
-    * @return Void
-    */
-   Publisher<WriteResult<K>> saveMany(Publisher<Map.Entry<K, V>> pairs);
+   Multi<? extends Map.Entry<K, V>> entries();
 
    /**
     * Estimate the size of the store
     *
     * @return Long, estimated size
     */
-   CompletionStage<Long> estimateSize();
+   Uni<Long> estimateSize();
 
    /**
     * Clear the store. If a concurrent operation puts data in the store the clear might not properly work
     *
     * @return Void
     */
-   CompletionStage<Void> clear();
+   Uni<Void> clear();
 
    /**
     * Executes the query and returns a reactive streams Publisher with the results
@@ -98,7 +89,7 @@ public interface KeyValueStore<K, V> {
     * @param ickleQuery query String
     * @return Publisher reactive streams
     */
-   Publisher<KeyValueEntry<K, V>> find(String ickleQuery);
+   Multi<KeyValueEntry<K, V>> find(String ickleQuery);
 
    /**
     * Find by QueryRequest.
@@ -106,7 +97,7 @@ public interface KeyValueStore<K, V> {
     * @param queryRequest
     * @return
     */
-   Publisher<KeyValueEntry<K, V>> find(QueryRequest queryRequest);
+   Multi<KeyValueEntry<K, V>> find(QueryRequest queryRequest);
 
    /**
     * Executes the query and returns a reactive streams Publisher with the results
@@ -114,7 +105,7 @@ public interface KeyValueStore<K, V> {
     * @param ickleQuery query String
     * @return Publisher reactive streams
     */
-   Publisher<KeyValueEntry<K, V>> findContinuously(String ickleQuery);
+   Multi<KeyValueEntry<K, V>> findContinuously(String ickleQuery);
 
    /**
     * Executes the query and returns a reactive streams Publisher with the results
@@ -122,7 +113,7 @@ public interface KeyValueStore<K, V> {
     * @param queryRequest
     * @return Publisher reactive streams
     */
-   <T> Publisher<KeyValueEntry<K, T>> findContinuously(QueryRequest queryRequest);
+   <T> Multi<KeyValueEntry<K, T>> findContinuously(QueryRequest queryRequest);
 
    /**
     * Listens to the {@link KeyValueStoreListener}
@@ -130,6 +121,6 @@ public interface KeyValueStore<K, V> {
     * @param listener
     * @return Publisher reactive streams
     */
-   Publisher<KeyValueEntry<K, V>> listen(KeyValueStoreListener listener);
+   Multi<KeyValueEntry<K, V>> listen(KeyValueStoreListener listener);
 
 }

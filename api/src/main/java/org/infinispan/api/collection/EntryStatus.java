@@ -1,4 +1,4 @@
-package org.infinispan.api.reactive;
+package org.infinispan.api.collection;
 
 /**
  * A {@link KeyValueStore} entry status. Used by listeners and Continuous Query

@@ -1,11 +1,11 @@
-package org.infinispan.api.reactive.client.impl.listener;
+package org.infinispan.api.collection.client.impl.listener;
 
 import java.nio.ByteBuffer;
 import java.util.Collections;
 
 import org.infinispan.api.client.listener.ClientKeyValueStoreListener;
-import org.infinispan.api.reactive.EntryStatus;
-import org.infinispan.api.reactive.KeyValueEntry;
+import org.infinispan.api.collection.EntryStatus;
+import org.infinispan.api.collection.KeyValueEntry;
 import org.infinispan.client.hotrod.RemoteCache;
 import org.infinispan.client.hotrod.annotation.ClientCacheEntryCreated;
 import org.infinispan.client.hotrod.annotation.ClientCacheEntryModified;
@@ -19,6 +19,7 @@ import org.reactivestreams.Subscriber;
 
 import io.reactivex.processors.FlowableProcessor;
 import io.reactivex.processors.UnicastProcessor;
+import io.smallrye.mutiny.Multi;
 
 public class ClientListenerImpl<K, V> implements Publisher {
    private RemoteCache<Object, Object> cache;
@@ -38,6 +39,10 @@ public class ClientListenerImpl<K, V> implements Publisher {
       processor.doOnCancel(() -> cache.removeClientListener(listener));
       processor.subscribe(subscriber);
       cache.addClientListener(listener);
+   }
+
+   public <V, K> Multi<KeyValueEntry<K, V>> toMulti() {
+      return Multi.createFrom().publisher(this);
    }
 
    @ClientListener(converterFactoryName = "___eager-key-value-version-converter",

@@ -58,65 +58,50 @@ public class KeyValueStoreTest extends SingleHotRodServerTest {
    @BeforeMethod
    public void clearStoreBeforeEachTest() {
       KeyValueStore<Integer, String> store = FunctionalTestUtils.await(infinispan.getKeyValueStore(CACHE_NAME, KeyValueStoreConfig.defaultConfig()));
-      await(store.clear());
+      store.clear().await();
    }
 
    public void testGetNoValue() {
-      assertNull(await(store.get(0)));
+      assertNull(store.get(0).await().indefinitely());
    }
 
    public void testCreate() {
-      Boolean writeResult = await(store.insert(1, "hi"));
+      Boolean writeResult = store.insert(1, "hi").await().indefinitely();
       assertTrue(writeResult);
-      assertEquals("hi", await(store.get(1)));
-      Boolean writeResult2 = await(store.insert(1, "hi"));
+      assertEquals("hi", store.get(1).await().indefinitely());
+      Boolean writeResult2 = store.insert(1, "hi").await().indefinitely();
       assertFalse(writeResult2);
    }
 
-   public void testSaveMany() {
-      Publisher<WriteResult<Integer>> publisher = store.saveMany(Flowable.fromArray(new AbstractMap.SimpleEntry(1, "adios"),
-            new AbstractMap.SimpleEntry(2, "agur"),
-            new AbstractMap.SimpleEntry(3, "ciao")));
-
-      TestSubscriber<WriteResult<Integer>> testSubscriber = new TestSubscriber<>();
-      publisher.subscribe(testSubscriber);
-
-      testSubscriber.awaitCount(3);
-
-      assertEquals("adios", await(store.get(1)));
-      assertEquals("agur", await(store.get(2)));
-      assertEquals("ciao", await(store.get(3)));
-   }
-
    public void testEstimateSizeEmptyStore() {
-      long estimatedSize = await(store.estimateSize());
+      long estimatedSize = store.estimateSize().await().indefinitely();
 
       assertEquals(0, estimatedSize);
    }
 
    public void testEstimateSizeWithData() {
       for (int i = 0; i < 100; i++) {
-         await(store.save(i, "" + i));
+         store.save(i, "" + i).await().indefinitely();
       }
 
-      long estimatedSize = await(store.estimateSize());
+      long estimatedSize = store.estimateSize().await().indefinitely();
       assertEquals(100, estimatedSize);
    }
 
    public void testDeleteNotExisting() {
-      await(store.delete(0));
+      store.delete(0).await().indefinitely();
    }
 
    public void testDeleteExisting() {
-      await(store.save(0, "hola"));
-      await(store.delete(0));
-      String getRemovedValue = await(store.get(0));
+      store.save(0, "hola").await().indefinitely();
+      store.delete(0).await().indefinitely();
+      String getRemovedValue = store.get(0).await().indefinitely();
       assertNull(getRemovedValue);
    }
 
    public void testKeys() {
       for (int i = 0; i < 100; i++) {
-         await(store.save(i, "" + i));
+         store.save(i, "" + i).await().indefinitely();
       }
 
       TestSubscriber subscriber = new TestSubscriber();
@@ -129,7 +114,7 @@ public class KeyValueStoreTest extends SingleHotRodServerTest {
 
    public void testEntries() {
       for (int i = 0; i < 100; i++) {
-         await(store.save(i, "" + i));
+         store.save(i, "" + i).await().indefinitely();
       }
 
       TestSubscriber subscriber = new TestSubscriber();

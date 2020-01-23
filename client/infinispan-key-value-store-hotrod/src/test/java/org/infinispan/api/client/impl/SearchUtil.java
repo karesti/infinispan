@@ -30,12 +30,12 @@ public final class SearchUtil {
    }
 
    public static final void populate(KeyValueStore<String, Person> store) {
-      await(store.save(OIHANA.id, OIHANA));
-      await(store.save(DANIELA.id, DANIELA));
-      await(store.save(UNAI.id, UNAI));
-      await(store.save(ELAIA.id, ELAIA));
-      await(store.save(EDOIA.id, EDOIA));
-      await(store.save(MIREN.id, MIREN));
+      store.save(OIHANA.id, OIHANA).await().indefinitely();
+      store.save(DANIELA.id, DANIELA).await().indefinitely();
+      store.save(UNAI.id, UNAI).await().indefinitely();
+      store.save(ELAIA.id, ELAIA).await().indefinitely();
+      store.save(EDOIA.id, EDOIA).await().indefinitely();
+      store.save(MIREN.id, MIREN).await().indefinitely();
    }
 
    public static String id() {

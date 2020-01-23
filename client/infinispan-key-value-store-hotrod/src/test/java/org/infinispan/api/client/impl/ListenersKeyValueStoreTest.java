@@ -53,7 +53,7 @@ public class ListenersKeyValueStoreTest extends SingleHotRodServerTest {
    @BeforeMethod
    public void clearStoreBeforeEachTest() {
       KeyValueStore<Integer, String> store = FunctionalTestUtils.await(infinispan.getKeyValueStore(CACHE_NAME, KeyValueStoreConfig.defaultConfig()));
-      await(store.clear());
+      store.clear().await();
    }
 
    @Test
@@ -62,8 +62,8 @@ public class ListenersKeyValueStoreTest extends SingleHotRodServerTest {
       store.listen(ClientKeyValueStoreListener.create()).subscribe(subscriber);
 
       putData();
-      await(store.save(3, "kaixito"));
-      await(store.delete(4));
+      store.save(3, "kaixito").await();
+      store.delete(4).await();
       subscriber.awaitCount(7);
       subscriber.assertValueCount(7);
 
@@ -81,8 +81,8 @@ public class ListenersKeyValueStoreTest extends SingleHotRodServerTest {
       TestSubscriber<KeyValueEntry<Integer, String>> subscriber = new TestSubscriber<>();
       store.listen(ClientKeyValueStoreListener.create(EntryStatus.CREATED)).subscribe(subscriber);
       putData();
-      await(store.save(3, "kaixito"));
-      await(store.delete(4));
+      store.save(3, "kaixito").await();
+      store.delete(4).await();
       subscriber.awaitCount(4);
       subscriber.assertValueCount(4);
 
@@ -100,8 +100,8 @@ public class ListenersKeyValueStoreTest extends SingleHotRodServerTest {
       TestSubscriber<KeyValueEntry<Integer, String>> subscriber = new TestSubscriber<>();
       store.listen(ClientKeyValueStoreListener.create(EntryStatus.UPDATED)).subscribe(subscriber);
       putData();
-      await(store.save(3, "kaixito"));
-      await(store.delete(4));
+      store.save(3, "kaixito").await();
+      store.delete(4).await();
       subscriber.awaitCount(2);
       subscriber.assertValueCount(2);
 
@@ -119,8 +119,8 @@ public class ListenersKeyValueStoreTest extends SingleHotRodServerTest {
       TestSubscriber<KeyValueEntry<Integer, String>> subscriber = new TestSubscriber<>();
       store.listen(ClientKeyValueStoreListener.create(EntryStatus.DELETED)).subscribe(subscriber);
       putData();
-      await(store.save(3, "kaixito"));
-      await(store.delete(4));
+      store.save(3, "kaixito").await();
+      store.delete(4).await();
       subscriber.awaitCount(1);
       subscriber.assertValueCount(1);
 
@@ -134,10 +134,10 @@ public class ListenersKeyValueStoreTest extends SingleHotRodServerTest {
    }
 
    private void putData() {
-      await(store.save(1, "hi"));
-      await(store.save(2, "hola"));
-      await(store.save(3, "hello"));
-      await(store.save(4, "kaixo"));
-      await(store.save(2, "holita"));
+      store.save(1, "hi").await();
+      store.save(2, "hola").await();
+      store.save(3, "hello").await();
+      store.save(4, "kaixo").await();
+      store.save(2, "holita").await();
    }
 }

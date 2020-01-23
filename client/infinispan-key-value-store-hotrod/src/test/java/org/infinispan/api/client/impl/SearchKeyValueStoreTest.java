@@ -103,7 +103,7 @@ public class SearchKeyValueStoreTest extends SingleHotRodServerTest {
       for (int i = 0; i < 10; i++) {
          Person person = new Person(OIHANA.firstName + i, OIHANA.lastName, OIHANA.bornYear, OIHANA.bornIn);
          person.address = OIHANA.address;
-         await(store.save(SearchUtil.id(), person));
+         store.save(SearchUtil.id(), person).await();
       }
 
       personTestSubscriber.awaitCount(11);
@@ -189,7 +189,7 @@ public class SearchKeyValueStoreTest extends SingleHotRodServerTest {
       updateOneValue();
 
       personTestSubscriber.await(1, TimeUnit.SECONDS);
-      await(store.delete(OIHANA.id));
+      store.delete(OIHANA.id).await().indefinitely();
       personTestSubscriber.assertValueCount(1);
    }
 
@@ -205,7 +205,7 @@ public class SearchKeyValueStoreTest extends SingleHotRodServerTest {
       personTestSubscriber.assertSubscribed();
       personTestSubscriber.assertValueCount(0);
 
-      await(store.clear());
+      store.clear().await().indefinitely();
       personTestSubscriber.await(1, TimeUnit.SECONDS);
       personTestSubscriber.assertValueCount(6);
    }
@@ -213,7 +213,7 @@ public class SearchKeyValueStoreTest extends SingleHotRodServerTest {
    private void updateOneValue() {
       Person copied = OIHANA.copy();
       copied.setAddress(new Address("25", "c/ Trafalgar", "28990", "Madrid", "Spain"));
-      await(store.delete(ELAIA.id));
-      await(store.save(OIHANA.id, copied));
+      store.delete(ELAIA.id).await().indefinitely();
+      store.save(OIHANA.id, copied).await().indefinitely();
    }
 }

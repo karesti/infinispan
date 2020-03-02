@@ -27,6 +27,7 @@ import org.infinispan.counter.configuration.ConvertUtil;
 import org.infinispan.counter.configuration.StrongCounterConfigurationBuilder;
 import org.infinispan.counter.configuration.WeakCounterConfigurationBuilder;
 import org.infinispan.counter.impl.manager.EmbeddedCounterManager;
+import org.infinispan.health.HealthStatus;
 import org.infinispan.rest.CacheControl;
 import org.infinispan.rest.InvocationHelper;
 import org.infinispan.rest.NettyRestResponse;
@@ -68,6 +69,8 @@ public class CounterResource implements ResourceHandler {
 
             // List
             .invocation().methods(GET).path("/v2/counters/").handleWith(this::getCounterNames)
+            // List with all the information
+            .invocation().methods(GET).path("/v2/counters/").withAction("all").handleWith(this::getCounterNames)
 
             // Common counter ops
             .invocation().methods(GET).path("/v2/counters/{counterName}").handleWith(this::getCounter)
@@ -162,6 +165,17 @@ public class CounterResource implements ResourceHandler {
    }
 
    private CompletionStage<RestResponse> getCounterNames(RestRequest request) throws RestResponseException {
+      NettyRestResponse.Builder responseBuilder = new NettyRestResponse.Builder();
+      try {
+         byte[] bytes = invocationHelper.getMapper().writeValueAsBytes(counterManager.getCounterNames());
+         responseBuilder.contentType(APPLICATION_JSON).entity(bytes).status(OK);
+      } catch (JsonProcessingException e) {
+         responseBuilder.status(HttpResponseStatus.INTERNAL_SERVER_ERROR);
+      }
+      return completedFuture(responseBuilder.build());
+   }
+
+   private CompletionStage<RestResponse> getCounters(RestRequest request) throws RestResponseException {
       NettyRestResponse.Builder responseBuilder = new NettyRestResponse.Builder();
       try {
          byte[] bytes = invocationHelper.getMapper().writeValueAsBytes(counterManager.getCounterNames());
@@ -342,4 +356,10 @@ public class CounterResource implements ResourceHandler {
             t.match(MediaType.TEXT_PLAIN) // TODO: add more types in ISPN-10211
       ).findFirst().orElseThrow(() -> Log.REST.unsupportedDataFormat(accept));
    }
+
+   class CounterInfo {
+      public String name;
+      public String type;
+   }
+
 }

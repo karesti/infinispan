@@ -913,6 +913,7 @@ public class DefaultCacheManager implements EmbeddedCacheManager {
 
    @Override
    public Set<String> getCacheNames() {
+      authzHelper.checkPermission(getSubject(), AuthorizationPermission.READ);
       // Get the XML/programmatically defined caches
       Set<String> names = new HashSet<>(configurationManager.getDefinedCaches());
       // Add the caches created dynamically without explicit config
@@ -927,6 +928,7 @@ public class DefaultCacheManager implements EmbeddedCacheManager {
 
    @Override
    public Set<String> getCacheConfigurationNames() {
+      authzHelper.checkPermission(getSubject(), AuthorizationPermission.READ);
       return cacheManagerInfo.getCacheConfigurationNames();
    }
 
@@ -1125,6 +1127,7 @@ public class DefaultCacheManager implements EmbeddedCacheManager {
 
    @Override
    public CacheContainerStats getStats() {
+      authzHelper.checkPermission(getSubject(), AuthorizationPermission.READ);
       return stats;
    }
 

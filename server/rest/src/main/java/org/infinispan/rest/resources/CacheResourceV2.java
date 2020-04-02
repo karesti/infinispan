@@ -16,6 +16,7 @@ import static org.infinispan.rest.framework.Method.POST;
 import static org.infinispan.rest.framework.Method.PUT;
 import static org.infinispan.rest.resources.MediaTypeUtils.negotiateMediaType;
 
+import java.security.PrivilegedAction;
 import java.util.EnumSet;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
@@ -46,6 +47,7 @@ import org.infinispan.rest.framework.ResourceHandler;
 import org.infinispan.rest.framework.RestRequest;
 import org.infinispan.rest.framework.RestResponse;
 import org.infinispan.rest.framework.impl.Invocations;
+import org.infinispan.security.Security;
 import org.infinispan.stats.Stats;
 import org.infinispan.upgrade.RollingUpgradeManager;
 
@@ -211,7 +213,7 @@ public class CacheResourceV2 extends BaseCacheResource implements ResourceHandle
       if (template != null && !template.isEmpty()) {
          String templateName = template.iterator().next();
          return CompletableFuture.supplyAsync(() -> {
-            administration.createCache(cacheName, templateName);
+            Security.doAs(request.getSubject(), (PrivilegedAction<Cache>) () -> administration.createCache(cacheName, templateName));
             responseBuilder.status(OK);
             return responseBuilder.build();
          }, invocationHelper.getExecutor());

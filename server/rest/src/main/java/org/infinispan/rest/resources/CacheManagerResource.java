@@ -178,11 +178,17 @@ public class CacheManagerResource implements ResourceHandler {
       if (restRequest.method() == HEAD) return completedFuture(new NettyRestResponse.Builder().status(OK).build());
 
       try {
-         Health health = SecurityActions.getHealth(cacheManager);
+         Health health = cacheManager.withSubject(restRequest.getSubject()).getHealth();
          HealthInfo healthInfo = new HealthInfo(health.getClusterHealth(), health.getCacheHealth());
 
          MediaType contentType = anon ? TEXT_PLAIN : APPLICATION_JSON;
-         Object payload = anon ? healthInfo.clusterHealth.getHealthStatus().toString() : objectMapper.writeValueAsBytes(healthInfo);
+         Object payload = null;
+         if(anon) {
+            payload = Security.doAs(restRequest.getSubject(), (PrivilegedAction<String>)
+                  () -> healthInfo.clusterHealth.getHealthStatus().toString());
+         } else {
+            payload = objectMapper.writeValueAsBytes(healthInfo);
+         }
          responseBuilder.contentType(contentType)
                .entity(payload)
                .status(OK);

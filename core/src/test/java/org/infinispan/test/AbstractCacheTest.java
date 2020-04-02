@@ -59,6 +59,17 @@ public abstract class AbstractCacheTest extends AbstractInfinispanTest {
       return builder;
    }
 
+   public static ConfigurationBuilder getDefaultSecuredClusteredCacheConfig(CacheMode mode) {
+      ConfigurationBuilder builder = new ConfigurationBuilder();
+      builder.
+            clustering()
+            .cacheMode(mode)
+            .security().authorization().enable();
+      builder.security().authorization().role("admin");
+
+      return builder;
+   }
+
    protected boolean xor(boolean b1, boolean b2) {
       return (b1 || b2) && !(b1 && b2);
    }

@@ -16,10 +16,13 @@ public class AuthClient extends HttpClient {
    private final String credentials;
 
    public AuthClient(String user, String pass) {
-      this.credentials = Base64.getEncoder().encodeToString(String.format("%s:%s", user, pass).getBytes(UTF_8));
+      this.credentials = createCredentials(user, pass);
    }
 
-   @Override
+   public static String createCredentials(String user, String pass) {
+      return Base64.getEncoder().encodeToString(String.format("%s:%s", user, pass).getBytes(UTF_8));
+   }
+
    public Request newRequest(String host, int port) {
       return addAuthHeader(super.newRequest(host, port));
    }

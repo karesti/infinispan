@@ -85,6 +85,7 @@ public class RestRequestHandler extends BaseHttpRequestHandler {
          // Ensure that the authorization header, if needed, has not changed
          String authz = request.headers().get(HttpHeaderNames.AUTHORIZATION);
          if (Objects.equals(authz, authorization)) {
+            restRequest.setSubject(subject);
             handleRestRequest(ctx, restRequest, invocationLookup);
             return;
          } else {

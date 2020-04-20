@@ -5,6 +5,7 @@ import static org.infinispan.rest.framework.Method.GET;
 import static org.infinispan.rest.framework.Method.POST;
 import static org.infinispan.rest.resources.MediaTypeUtils.negotiateMediaType;
 
+import java.security.PrivilegedAction;
 import java.util.Date;
 import java.util.List;
 import java.util.OptionalInt;
@@ -31,6 +32,9 @@ import org.infinispan.rest.operations.exceptions.NoDataFoundException;
 import org.infinispan.rest.operations.exceptions.NoKeyException;
 
 import io.netty.handler.codec.http.HttpResponseStatus;
+import org.infinispan.security.Security;
+
+import javax.security.auth.Subject;
 
 /**
  * Handle basic cache operations.
@@ -114,7 +118,7 @@ public class BaseCacheResource {
                }
             }
          }
-         return putInCache(responseBuilder, cache, key, data, ttl, idle);
+         return putInCache(responseBuilder, cache, key, data, ttl, idle, request.getSubject());
       });
    }
 
@@ -224,10 +228,12 @@ public class BaseCacheResource {
 
    private CompletionStage<RestResponse> putInCache(NettyRestResponse.Builder responseBuilder,
                                                     AdvancedCache<Object, Object> cache, Object key, byte[] data, Long ttl,
-                                                    Long idleTime) {
+                                                    Long idleTime, Subject subject) {
       final Metadata metadata = CacheOperationsHelper.createMetadata(SecurityActions.getCacheConfiguration(cache), ttl, idleTime);
       responseBuilder.header("etag", calcETAG(data));
-      return cache.putAsync(key, data, metadata).thenApply(o -> responseBuilder.build());
+      CompletableFuture putAsyncResult = Security
+            .doAs(subject, (PrivilegedAction<CompletableFuture>) () -> cache.putAsync(key, data, metadata));
+      return putAsyncResult.thenApply(o -> responseBuilder.build());
    }
 
 }

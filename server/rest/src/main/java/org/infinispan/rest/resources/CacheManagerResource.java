@@ -8,9 +8,11 @@ import static java.util.concurrent.CompletableFuture.completedFuture;
 import static org.infinispan.commons.dataconversion.MediaType.APPLICATION_JSON;
 import static org.infinispan.commons.dataconversion.MediaType.APPLICATION_XML;
 import static org.infinispan.commons.dataconversion.MediaType.TEXT_PLAIN;
+import static org.infinispan.query.remote.client.ProtobufMetadataManagerConstants.PROTOBUF_METADATA_CACHE_NAME;
 import static org.infinispan.rest.framework.Method.GET;
 import static org.infinispan.rest.framework.Method.HEAD;
 import static org.infinispan.rest.framework.Method.POST;
+import static org.infinispan.scripting.ScriptingManager.SCRIPT_CACHE;
 
 import java.io.ByteArrayOutputStream;
 import java.security.PrivilegedAction;
@@ -25,6 +27,7 @@ import java.util.stream.Collectors;
 
 import javax.xml.stream.XMLStreamException;
 
+import org.infinispan.Cache;
 import org.infinispan.commons.configuration.JsonWriter;
 import org.infinispan.commons.dataconversion.MediaType;
 import org.infinispan.configuration.cache.Configuration;
@@ -42,6 +45,7 @@ import org.infinispan.reactive.RxJavaInterop;
 import org.infinispan.registry.InternalCacheRegistry;
 import org.infinispan.rest.InvocationHelper;
 import org.infinispan.rest.NettyRestResponse;
+import org.infinispan.rest.cachemanager.RestCacheManager;
 import org.infinispan.rest.framework.ContentSource;
 import org.infinispan.rest.framework.ResourceHandler;
 import org.infinispan.rest.framework.RestRequest;
@@ -70,10 +74,12 @@ public class CacheManagerResource implements ResourceHandler {
    private final ObjectMapper objectMapper;
    private final ParserRegistry parserRegistry = new ParserRegistry();
    private final String cacheManagerName;
+   private final RestCacheManager<Object> restCacheManager;
 
    public CacheManagerResource(InvocationHelper invocationHelper) {
       this.objectMapper = invocationHelper.getMapper();
       this.cacheManager = invocationHelper.getRestCacheManager().getInstance();
+      this.restCacheManager = invocationHelper.getRestCacheManager();
       GlobalConfiguration globalConfiguration = SecurityActions.getCacheManagerConfiguration(cacheManager);
       this.cacheManagerName = globalConfiguration.cacheManagerName();
       GlobalComponentRegistry globalComponentRegistry = SecurityActions.getGlobalComponentRegistry(cacheManager);
@@ -124,7 +130,9 @@ public class CacheManagerResource implements ResourceHandler {
       NettyRestResponse.Builder responseBuilder = checkCacheManager(request);
       if (responseBuilder.getHttpStatus() == NOT_FOUND) return completedFuture(responseBuilder.build());
 
-      GlobalConfiguration globalConfiguration = cacheManager.getCacheManagerConfiguration();
+      EmbeddedCacheManager embeddedCacheManager = cacheManager.withSubject(request.getSubject());
+
+      GlobalConfiguration globalConfiguration = SecurityActions.getCacheManagerConfiguration(embeddedCacheManager);
 
       MediaType format = MediaTypeUtils.negotiateMediaType(request, APPLICATION_JSON, APPLICATION_XML);
 
@@ -178,11 +186,17 @@ public class CacheManagerResource implements ResourceHandler {
       if (restRequest.method() == HEAD) return completedFuture(new NettyRestResponse.Builder().status(OK).build());
 
       try {
-         Health health = SecurityActions.getHealth(cacheManager);
+         Health health = cacheManager.withSubject(restRequest.getSubject()).getHealth();
          HealthInfo healthInfo = new HealthInfo(health.getClusterHealth(), health.getCacheHealth());
 
          MediaType contentType = anon ? TEXT_PLAIN : APPLICATION_JSON;
-         Object payload = anon ? healthInfo.clusterHealth.getHealthStatus().toString() : objectMapper.writeValueAsBytes(healthInfo);
+         Object payload = null;
+         if(anon) {
+            payload = Security.doAs(restRequest.getSubject(), (PrivilegedAction<String>)
+                  () -> healthInfo.clusterHealth.getHealthStatus().toString());
+         } else {
+            payload = objectMapper.writeValueAsBytes(healthInfo);
+         }
          responseBuilder.contentType(contentType)
                .entity(payload)
                .status(OK);
@@ -196,21 +210,28 @@ public class CacheManagerResource implements ResourceHandler {
       NettyRestResponse.Builder responseBuilder = checkCacheManager(request);
       if (responseBuilder.getHttpStatus() == NOT_FOUND) return completedFuture(responseBuilder.build());
 
+      EmbeddedCacheManager withSubjectCM = cacheManager.withSubject(request.getSubject());
       Map<String, HealthStatus> cachesHeath = new HashMap<>();
+      // Remove internal caches
+      Set<String> cacheNames = new HashSet<>(withSubjectCM.getCacheNames());
+      cacheNames.remove(PROTOBUF_METADATA_CACHE_NAME);
+      cacheNames.remove(SCRIPT_CACHE);
 
-      for(CacheHealth ch: SecurityActions.getHealth(cacheManager).getCacheHealth()) {
+      for(CacheHealth ch: SecurityActions.getHealth(withSubjectCM).getCacheHealth(cacheNames)) {
          cachesHeath.put(ch.getCacheName(), ch.getStatus());
       }
 
       // We rely on the fact that getCacheNames doesn't block for embedded - remote it does unfortunately
-      return Flowable.fromIterable(cacheManager.getCacheNames())
-            .map(cacheManager::getCache)
-            .map(cache -> {
+      return Flowable.fromIterable(cachesHeath.entrySet())
+            .map(chHealth -> {
+               String cacheName = chHealth.getKey();
+               Configuration cacheConfiguration = SecurityActions
+                     .getCacheConfigurationFromManager(withSubjectCM, cacheName);
                CacheInfo cacheInfo = new CacheInfo();
-               cacheInfo.name = cache.getName();
-               Configuration cacheConfiguration = cache.getCacheConfiguration();
+               cacheInfo.name = cacheName;
                cacheInfo.type = cacheConfiguration.clustering().cacheMode().toCacheType();
-               cacheInfo.status = cache.getStatus().name();
+               Cache cache =  restCacheManager.getCache(cacheName, request);
+               cacheInfo.status = cache.getStatus().toString();
                cacheInfo.simpleCache = cacheConfiguration.simpleCache();
                cacheInfo.transactional = cacheConfiguration.transaction().transactionMode().isTransactional();
                cacheInfo.persistent = cacheConfiguration.persistence().usingStores();
@@ -219,7 +240,7 @@ public class CacheManagerResource implements ResourceHandler {
                cacheInfo.secured = cacheConfiguration.security().authorization().enabled();
                cacheInfo.indexed = cacheConfiguration.indexing().enabled();
                cacheInfo.hasRemoteBackup = cacheConfiguration.sites().hasEnabledBackups();
-               cacheInfo.health = cachesHeath.get(cache.getName());
+               cacheInfo.health = cachesHeath.get(cacheName);
                return cacheInfo;
             })
             .collectInto(new HashSet<CacheInfo>(), Set::add)
@@ -241,15 +262,17 @@ public class CacheManagerResource implements ResourceHandler {
    private CompletionStage<RestResponse> getAllCachesConfiguration(RestRequest request) {
       NettyRestResponse.Builder responseBuilder = checkCacheManager(request);
       if (responseBuilder.getHttpStatus() == NOT_FOUND) return completedFuture(responseBuilder.build());
+      EmbeddedCacheManager subjectCacheManager = cacheManager.withSubject(request.getSubject());
 
       try {
-         Set<String> cacheConfigurationNames = cacheManager.getCacheConfigurationNames();
+         Set<String> cacheConfigurationNames = subjectCacheManager.getCacheConfigurationNames();
 
          List<NamedCacheConfiguration> configurations = cacheConfigurationNames.stream()
                .filter(n -> !internalCacheRegistry.isInternalCache(n))
                .distinct()
                .map(n -> {
-                  Configuration cacheConfiguration = cacheManager.withSubject(request.getSubject()).getCacheConfiguration(n);
+                  Configuration cacheConfiguration = SecurityActions
+                        .getCacheConfigurationFromManager(subjectCacheManager, n);
                   String json = jsonWriter.toJSON(cacheConfiguration);
                   return new NamedCacheConfiguration(n, json);
                })
@@ -268,15 +291,19 @@ public class CacheManagerResource implements ResourceHandler {
    private CompletionStage<RestResponse> getAllCachesConfigurationTemplates(RestRequest request) {
       NettyRestResponse.Builder responseBuilder = checkCacheManager(request);
       if (responseBuilder.getHttpStatus() == NOT_FOUND) return completedFuture(responseBuilder.build());
+      EmbeddedCacheManager withSubjectCM = cacheManager.withSubject(request.getSubject());
 
       try {
-         Set<String> cacheConfigurationNames = cacheManager.getCacheConfigurationNames();
+         Set<String> cacheConfigurationNames = withSubjectCM.getCacheConfigurationNames();
 
          List<NamedCacheConfiguration> configurations = cacheConfigurationNames.stream()
                .filter(n -> !internalCacheRegistry.isInternalCache(n))
-               .filter(n -> cacheManager.getCacheConfiguration(n).isTemplate())
+               .filter(n -> SecurityActions.getCacheConfigurationFromManager(withSubjectCM, n).isTemplate())
                .distinct()
-               .map(n -> new NamedCacheConfiguration(n, jsonWriter.toJSON(cacheManager.getCacheConfiguration(n))))
+               .map(n -> {
+                  Configuration config = SecurityActions.getCacheConfigurationFromManager(withSubjectCM, n);
+                  return new NamedCacheConfiguration(n, jsonWriter.toJSON(config));
+               })
                .sorted(Comparator.comparing(c -> c.name))
                .collect(Collectors.toList());
 

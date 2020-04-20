@@ -16,6 +16,7 @@ import static org.infinispan.rest.framework.Method.POST;
 import static org.infinispan.rest.framework.Method.PUT;
 import static org.infinispan.rest.resources.MediaTypeUtils.negotiateMediaType;
 
+import java.security.PrivilegedAction;
 import java.util.EnumSet;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
@@ -46,6 +47,7 @@ import org.infinispan.rest.framework.ResourceHandler;
 import org.infinispan.rest.framework.RestRequest;
 import org.infinispan.rest.framework.RestResponse;
 import org.infinispan.rest.framework.impl.Invocations;
+import org.infinispan.security.Security;
 import org.infinispan.stats.Stats;
 import org.infinispan.upgrade.RollingUpgradeManager;
 
@@ -53,6 +55,8 @@ import com.fasterxml.jackson.annotation.JsonRawValue;
 import com.fasterxml.jackson.core.JsonProcessingException;
 
 import io.netty.handler.codec.http.HttpResponseStatus;
+
+import javax.security.auth.Subject;
 
 public class CacheResourceV2 extends BaseCacheResource implements ResourceHandler {
 
@@ -183,7 +187,10 @@ public class CacheResourceV2 extends BaseCacheResource implements ResourceHandle
          return CompletableFuture.completedFuture(responseBuilder.build());
       }
       return CompletableFuture.supplyAsync(() -> {
-         restCacheManager.getCacheManagerAdmin(request).removeCache(cacheName);
+         Subject.doAs(request.getSubject(), (PrivilegedAction<Void>) () -> {
+            restCacheManager.getCacheManagerAdmin(request).removeCache(cacheName);
+            return null;
+         });
          responseBuilder.status(OK);
          return responseBuilder.build();
       }, invocationHelper.getExecutor());
@@ -211,7 +218,10 @@ public class CacheResourceV2 extends BaseCacheResource implements ResourceHandle
       if (template != null && !template.isEmpty()) {
          String templateName = template.iterator().next();
          return CompletableFuture.supplyAsync(() -> {
-            administration.createCache(cacheName, templateName);
+            Security.doAs(request.getSubject(), (PrivilegedAction<Void>) () -> {
+               administration.createCache(cacheName, templateName);
+               return null;
+            });
             responseBuilder.status(OK);
             return responseBuilder.build();
          }, invocationHelper.getExecutor());
@@ -221,7 +231,10 @@ public class CacheResourceV2 extends BaseCacheResource implements ResourceHandle
       byte[] bytes = contents.rawContent();
       if (bytes == null || bytes.length == 0) {
          return CompletableFuture.supplyAsync(() -> {
-            administration.createCache(cacheName, (String) null);
+            Security.doAs(request.getSubject(), (PrivilegedAction<Void>) () -> {
+               administration.createCache(cacheName, (String) null);
+               return null;
+            });
             responseBuilder.status(OK);
             return responseBuilder.build();
          }, invocationHelper.getExecutor());
@@ -242,8 +255,10 @@ public class CacheResourceV2 extends BaseCacheResource implements ResourceHandle
 
       ConfigurationBuilder finalCfgBuilder = cfgBuilder;
       return CompletableFuture.supplyAsync(() -> {
-         administration.createCache(cacheName, finalCfgBuilder.build());
-
+         Security.doAs(request.getSubject(), (PrivilegedAction<Void>) () -> {
+            administration.createCache(cacheName, finalCfgBuilder.build());
+            return null;
+         });
          responseBuilder.status(OK);
          return responseBuilder.build();
       }, invocationHelper.getExecutor());
@@ -333,7 +348,7 @@ public class CacheResourceV2 extends BaseCacheResource implements ResourceHandle
       if (cache == null)
          return CompletableFuture.completedFuture(responseBuilder.status(HttpResponseStatus.NOT_FOUND.code()).build());
 
-      Configuration cacheConfiguration = cache.getCacheConfiguration();
+      Configuration cacheConfiguration = SecurityActions.getCacheConfiguration(cache.getAdvancedCache());
 
       String entity;
       if (accept.getTypeSubtype().equals(APPLICATION_XML_TYPE)) {

@@ -23,6 +23,7 @@ import java.util.List;
 import java.util.Set;
 import java.util.stream.IntStream;
 
+import org.eclipse.jetty.client.HttpClient;
 import org.eclipse.jetty.client.api.ContentResponse;
 import org.eclipse.jetty.client.api.Request;
 import org.eclipse.jetty.client.util.StringContentProvider;
@@ -57,8 +58,8 @@ public class CacheV2ResourceTest extends AbstractRestResourceTest {
    @Override
    public Object[] factory() {
       return new Object[]{
-            // [ISPN-11525] new CacheV2ResourceTest().withSecurity(true),
-            new CacheV2ResourceTest().withSecurity(false),
+            new CacheV2ResourceTest().withSecurity(true),
+            new CacheV2ResourceTest().withSecurity(false)
       };
    }
 
@@ -153,34 +154,54 @@ public class CacheV2ResourceTest extends AbstractRestResourceTest {
       String xml = getResourceAsString("cache.xml", getClass().getClassLoader());
       String json = getResourceAsString("cache.json", getClass().getClassLoader());
 
-      ContentResponse response = client.newRequest(url + "cache1").header("Content-type", APPLICATION_XML_TYPE)
+      ContentResponse response;
+
+      HttpClient client1 = client;
+      HttpClient client2 = createNewClient();
+      client2.start();
+
+      response = client1.newRequest(url + "cache1").header("Content-type", APPLICATION_XML_TYPE)
             .method(HttpMethod.POST).header("flags", "VOLATILE").content(new StringContentProvider(xml)).send();
       ResponseAssertion.assertThat(response).isOk();
       assertPersistence("cache1", false);
 
-      response = client.newRequest(url + "cache2").header("Content-type", APPLICATION_JSON_TYPE)
+      response = client2.newRequest(url + "cache2").header("Content-type", APPLICATION_JSON_TYPE)
             .method(HttpMethod.POST).content(new StringContentProvider(json)).send();
       ResponseAssertion.assertThat(response).isOk();
       assertPersistence("cache2", true);
 
       String mediaList = "application/json,text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8";
-      response = client.newRequest(url + "cache1?action=config").method(GET).header("Accept", mediaList).send();
+      response = client1.newRequest(url + "cache1?action=config").method(GET).header("Accept", mediaList).send();
       ResponseAssertion.assertThat(response).isOk();
       ResponseAssertion.assertThat(response).bodyNotEmpty();
       String cache1Cfg = response.getContentAsString();
 
-
-      response = client.newRequest(url + "cache2?action=config").method(GET).send();
+      response = client2.newRequest(url + "cache2?action=config").method(GET).send();
       ResponseAssertion.assertThat(response).isOk();
       ResponseAssertion.assertThat(response).bodyNotEmpty();
       String cache2Cfg = response.getContentAsString();
 
       assertEquals(cache1Cfg, cache2Cfg);
+      client2.stop();
+   }
 
-      response = client.newRequest(url + "cache1").method(HttpMethod.DELETE).send();
+   @Test
+   public void testCreateDeleteCache() throws Exception {
+      String url = String.format("http://localhost:%d/rest/v2/caches/", restServer().getPort());
+
+      String xml = getResourceAsString("cache.xml", getClass().getClassLoader());
+
+      ContentResponse response = client.newRequest(url + "cacheCRUD").header("Content-type", APPLICATION_XML_TYPE)
+            .method(HttpMethod.POST).header("flags", "VOLATILE").content(new StringContentProvider(xml)).send();
       ResponseAssertion.assertThat(response).isOk();
 
-      response = client.newRequest(url + "cache1?action=stats").method(GET).send();
+      response = client.newRequest(url + "cacheCRUD?action=stats").method(GET).send();
+      ResponseAssertion.assertThat(response).isOk();
+
+      response = client.newRequest(url + "cacheCRUD").method(HttpMethod.DELETE).send();
+      ResponseAssertion.assertThat(response).isOk();
+
+      response = client.newRequest(url + "cacheCRUD?action=stats").method(GET).send();
       ResponseAssertion.assertThat(response).isNotFound();
    }
 

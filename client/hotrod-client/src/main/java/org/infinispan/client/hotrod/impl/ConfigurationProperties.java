@@ -113,6 +113,7 @@ public class ConfigurationProperties {
    public static final int DEFAULT_HOTROD_PORT = 11222;
    public static final int DEFAULT_SO_TIMEOUT = 60_000;
    public static final int DEFAULT_CONNECT_TIMEOUT = 60_000;
+   public static final int DEFAULT_TX_TIMEOUT = 60_000;
    public static final int DEFAULT_MAX_RETRIES = 10;
    public static final int DEFAULT_BATCH_SIZE = 10_000;
    public static final int DEFAULT_MAX_PENDING_REQUESTS = 5;
@@ -555,5 +556,21 @@ public class ConfigurationProperties {
 
    public void setJavaSerialWhitelist(String javaSerialWhitelist) {
       props.setProperty(JAVA_SERIAL_WHITELIST, javaSerialWhitelist);
+   }
+
+   public void setTransactionMode(String transactionMode) {
+      props.setProperty(TRANSACTION_MODE, transactionMode);
+   }
+
+   public String getTransactionMode() {
+      return props.getProperty(TRANSACTION_MODE);
+   }
+
+   public void setTransactionTimeout(int transactionTimeout) {
+      props.setProperty(TRANSACTION_TIMEOUT, transactionTimeout);
+   }
+
+   public int getTransactionTimeout() {
+      return props.getIntProperty(TRANSACTION_TIMEOUT, DEFAULT_TX_TIMEOUT);
    }
 }

@@ -25,7 +25,7 @@ import org.infinispan.client.hotrod.RemoteCacheManager;
 import org.infinispan.client.hotrod.SomeRequestBalancingStrategy;
 import org.infinispan.commons.executors.ExecutorFactory;
 import org.infinispan.commons.marshall.JavaSerializationMarshaller;
-import org.infinispan.commons.marshall.Marshaller;
+import org.infinispan.marshall.core.GlobalMarshaller;
 import org.infinispan.spring.remote.AssertionUtils;
 import org.infinispan.test.AbstractInfinispanTest;
 import org.springframework.core.io.ClassPathResource;
@@ -289,7 +289,7 @@ public class SpringRemoteCacheManagerFactoryBeanTest extends AbstractInfinispanT
     */
    @Test
    public final void setMarshallerShouldOverrideDefaultMarshaller() throws Exception {
-      final String expectedMarshaller = Marshaller.class.getName();
+      final String expectedMarshaller = GlobalMarshaller.class.getName();
       objectUnderTest = new SpringRemoteCacheManagerFactoryBean();
       objectUnderTest.setMarshaller(expectedMarshaller);
       objectUnderTest.setStartAutomatically(false);

@@ -1,4 +1,4 @@
-package test.infinispan.autoconfigure;
+package org.infinispan.integrationtests.autoconfigure;
 
 import org.infinispan.client.hotrod.RemoteCacheManager;
 import org.infinispan.manager.DefaultCacheManager;

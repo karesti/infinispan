@@ -1,6 +1,4 @@
-package test.infinispan.autoconfigure;
-
-import static org.junit.jupiter.api.Assertions.assertNotNull;
+package org.infinispan.integrationtests.autoconfigure;
 
 import org.infinispan.client.hotrod.RemoteCacheManager;
 import org.infinispan.manager.DefaultCacheManager;
@@ -12,6 +10,8 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.context.ApplicationContext;
+
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 
 @SpringBootTest(
       classes = {

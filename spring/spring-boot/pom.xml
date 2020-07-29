@@ -50,6 +50,5 @@
     <modules>
         <module>embedded</module>
         <module>remote</module>
-        <module>tests</module>
     </modules>
 </project>

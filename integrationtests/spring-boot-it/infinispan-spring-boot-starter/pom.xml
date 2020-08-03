@@ -11,7 +11,7 @@
 
     <artifactId>infinispan-spring-boot-starter-it</artifactId>
     <name>Integration tests - Spring Boot Starter</name>
-    <description>Integration tests for Infinispan and Spring Boot Starter</description>
+    <description>Integration tests for  Infinispan and Spring Boot Starter</description>
 
     <dependencies>
         <dependency>

@@ -205,7 +205,8 @@ public class ServerResource implements ResourceHandler {
 
       Json info = Json.object()
             .set("name", connectorName)
-            .set("ip-filter-rules", ipFilterRulesAsJson(connector));
+            .set("ip-filter-rules", ipFilterRulesAsJson(connector))
+            .set("default-cache", connector.getConfiguration().defaultCacheName());
       Transport transport = connector.getTransport();
       if (transport != null) {
          info.set("host", transport.getHostName())

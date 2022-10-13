@@ -202,26 +202,34 @@ public class ServerResource implements ResourceHandler {
       if (connector == null) return completedFuture(builder.status(NOT_FOUND).build());
 
       ServerStateManager serverStateManager = invocationHelper.getServer().getServerStateManager();
-
       Json info = Json.object()
             .set("name", connectorName)
             .set("ip-filter-rules", ipFilterRulesAsJson(connector))
             .set("default-cache", connector.getConfiguration().defaultCacheName());
-      Transport transport = connector.getTransport();
-      if (transport != null) {
-         info.set("host", transport.getHostName())
-               .set("port", transport.getPort())
-               .set("local-connections", transport.getNumberOfLocalConnections())
-               .set("global-connections", transport.getNumberOfGlobalConnections())
-               .set("io-threads", transport.getNumberIOThreads())
-               .set("pending-tasks", transport.getPendingTasks())
-               .set("total-bytes-read", transport.getTotalBytesRead())
-               .set("total-bytes-written", transport.getTotalBytesWritten())
-               .set("send-buffer-size", transport.getSendBufferSize())
-               .set("receive-buffer-size", transport.getReceiveBufferSize());
-      }
+
       return Security.doAs(restRequest.getSubject(), (PrivilegedAction<CompletionStage<RestResponse>>) () ->
-            serverStateManager.connectorStatus(connectorName).thenApply(b -> builder.contentType(APPLICATION_JSON).entity(info.set("enabled", b)).build()));
+            serverStateManager.connectorStatus(connectorName)
+                  .thenApply(b -> info.set("enabled", b))
+                  .thenCompose(i -> {
+                     Transport transport = connector.getTransport();
+                     if (transport == null) {
+                        return CompletableFuture.supplyAsync(() -> i);
+                     } else {
+                        return CompletableFuture.supplyAsync(() -> {
+                           i.set("host", transport.getHostName()).set("port", transport.getPort())
+                                 .set("local-connections", transport.getNumberOfLocalConnections())
+                                 .set("global-connections", transport.getNumberOfGlobalConnections())
+                                 .set("io-threads", transport.getNumberIOThreads()).set("pending-tasks", transport.getPendingTasks())
+                                 .set("total-bytes-read", transport.getTotalBytesRead())
+                                 .set("total-bytes-written", transport.getTotalBytesWritten())
+                                 .set("send-buffer-size", transport.getSendBufferSize())
+                                 .set("receive-buffer-size", transport.getReceiveBufferSize());
+                           return i;
+                        }, invocationHelper.getExecutor());
+                     }
+                  })
+                  .thenApply(i -> builder.contentType(APPLICATION_JSON).entity(i).build())
+      );
    }
 
    private CompletionStage<RestResponse> connectorIpFilterList(RestRequest restRequest) {

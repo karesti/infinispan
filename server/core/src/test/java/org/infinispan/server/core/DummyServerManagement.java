@@ -1,6 +1,7 @@
 package org.infinispan.server.core;
 
 import java.nio.file.Path;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CompletionStage;
@@ -10,6 +11,7 @@ import javax.sql.DataSource;
 import org.infinispan.commons.configuration.io.ConfigurationWriter;
 import org.infinispan.lifecycle.ComponentStatus;
 import org.infinispan.manager.DefaultCacheManager;
+import org.infinispan.manager.EmbeddedCacheManager;
 import org.infinispan.tasks.TaskManager;
 
 /**
@@ -17,6 +19,22 @@ import org.infinispan.tasks.TaskManager;
  * @since 13.0
  **/
 public class DummyServerManagement implements ServerManagement {
+
+   private DefaultCacheManager defaultCacheManager;
+   private Map<String, ProtocolServer> protocolServers;
+   private ServerStateManager serverStateManager;
+
+   public DummyServerManagement() {
+
+   }
+
+   public DummyServerManagement(EmbeddedCacheManager defaultCacheManager,
+                                Map<String, ProtocolServer> protocolServers) {
+      this.defaultCacheManager = (DefaultCacheManager) defaultCacheManager;
+      this.protocolServers = protocolServers;
+      serverStateManager = new DummyServerStateManager();
+
+   }
 
    @Override
    public ComponentStatus getStatus() {
@@ -43,22 +61,22 @@ public class DummyServerManagement implements ServerManagement {
 
    @Override
    public DefaultCacheManager getCacheManager() {
-      return null;
+      return defaultCacheManager;
    }
 
    @Override
    public ServerStateManager getServerStateManager() {
-      return null;
+      return serverStateManager;
    }
 
    @Override
    public Map<String, String> getLoginConfiguration(ProtocolServer protocolServer) {
-      return null;
+      return new HashMap<>();
    }
 
    @Override
    public Map<String, ProtocolServer> getProtocolServers() {
-      return null;
+      return protocolServers;
    }
 
    @Override

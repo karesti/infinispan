@@ -1,5 +1,6 @@
 package org.infinispan.server.resp;
 
+import io.lettuce.core.LMPopArgs;
 import io.lettuce.core.LPosArgs;
 import io.lettuce.core.RedisCommandExecutionException;
 import io.lettuce.core.api.sync.RedisCommands;
@@ -375,5 +376,11 @@ public class RespListCommandsTest extends SingleNodeRespBaseTest {
          redis.ltrim("another", 0, 2);
       }).isInstanceOf(RedisCommandExecutionException.class)
             .hasMessageContaining("ERRWRONGTYPE");
+   }
+
+   public void testLMPOP() {
+
+      redis.lmpop(LMPopArgs.Builder.left().count(1), "nothing");
+
    }
 }

@@ -129,6 +129,22 @@ include::rest_examples/get_v2_security_list_principals.adoc[]
 include::json/rest_security_principals.json[]
 ----
 
+[id='rest_v2_list_principals_by_role']
+= Listing principals by role
+List the principal names with a role for all security realms that can enumerate users (`properties`, `ldap`)
+
+[source,options="nowrap",subs=attributes+]
+----
+include::rest_examples/get_v2_security_list_principals.adoc[]
+----
+
+{brandname} responds with a list of principals keyed to each realm
+
+[source,json,options="nowrap",subs=attributes+]
+----
+include::json/rest_security_principals.json[]
+----
+
 [id='rest_v2_create_role']
 = Creating roles
 Create a role by defining its permissions.

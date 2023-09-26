@@ -88,7 +88,7 @@ public class SecurityResource implements ResourceHandler {
                .handleWith(r -> listAllRoles(r, true))
             .invocation().method(GET).path("/v2/security/roles/{principal}")
                .permission(AuthorizationPermission.ADMIN).name("ROLES PRINCIPAL").auditContext(AuditContext.SERVER)
-               .handleWith(this::listPrincipalRoles)
+               .handleWith(this::listRolesByPrincipal)
             .invocation().method(PUT).path("/v2/security/roles/{principal}").withAction("grant")
                .permission(AuthorizationPermission.ADMIN).name("ROLES GRANT").auditContext(AuditContext.SERVER)
                .handleWith(this::grant)
@@ -98,6 +98,9 @@ public class SecurityResource implements ResourceHandler {
             .invocation().methods(GET).path("/v2/security/principals")
                .permission(AuthorizationPermission.ADMIN).name("PRINCIPALS LIST").auditContext(AuditContext.SERVER)
                .handleWith(this::listPrincipals)
+            .invocation().methods(GET).path("/v2/security/principals/{role}")
+               .permission(AuthorizationPermission.ADMIN).name("ROLE PRINCIPALS LIST").auditContext(AuditContext.SERVER)
+               .handleWith(this::listPrincipalsByRole)
             .invocation().methods(POST, PUT).path("/v2/security/permissions/{role}")
                .permission(AuthorizationPermission.ADMIN).name("ROLES CREATE").auditContext(AuditContext.SERVER)
                .handleWith(this::createRole)
@@ -235,7 +238,7 @@ public class SecurityResource implements ResourceHandler {
       }
    }
 
-   private CompletionStage<RestResponse> listPrincipalRoles(RestRequest request) {
+   private CompletionStage<RestResponse> listRolesByPrincipal(RestRequest request) {
       String principal = request.variables().get("principal");
       if (principalRoleMapper == null) {
          return completedFuture(invocationHelper.newResponse(request).status(CONFLICT).entity(Log.REST.principalRoleMapperNotMutable()).build());
@@ -243,6 +246,16 @@ public class SecurityResource implements ResourceHandler {
       Json roles = Json.array();
       principalRoleMapper.list(principal).forEach(roles::add);
       return asJsonResponseFuture(invocationHelper.newResponse(request), roles, isPretty(request));
+   }
+
+   private CompletionStage<RestResponse> listPrincipalsByRole(RestRequest request) {
+      String role = request.variables().get("role");
+      if (principalRoleMapper == null) {
+         return completedFuture(invocationHelper.newResponse(request).status(CONFLICT).entity(Log.REST.principalRoleMapperNotMutable()).build());
+      }
+      Json principals = Json.array();
+      principalRoleMapper.listPrincipals(role).forEach(principals::add);
+      return asJsonResponseFuture(invocationHelper.newResponse(request), principals, isPretty(request));
    }
 
    private CompletionStage<RestResponse> acl(RestRequest request) {

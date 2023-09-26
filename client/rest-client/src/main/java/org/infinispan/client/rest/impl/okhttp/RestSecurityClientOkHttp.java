@@ -30,6 +30,11 @@ public class RestSecurityClientOkHttp implements RestSecurityClient {
    }
 
    @Override
+   public CompletionStage<RestResponse> listPrincipals(String role) {
+      return client.execute(baseSecurityURL, "principals", role);
+   }
+
+   @Override
    public CompletionStage<RestResponse> listRoles() {
       return listRoles(null) ;
    }

@@ -10,6 +10,8 @@ import java.util.concurrent.CompletionStage;
 public interface RestSecurityClient {
    CompletionStage<RestResponse> listPrincipals();
 
+   CompletionStage<RestResponse> listPrincipals(String role);
+
    CompletionStage<RestResponse> listRoles();
 
    CompletionStage<RestResponse> listRoles(boolean detailed);

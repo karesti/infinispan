@@ -1,20 +1,5 @@
 package org.infinispan.rest.resources;
 
-import static org.infinispan.client.rest.configuration.Protocol.HTTP_11;
-import static org.infinispan.commons.dataconversion.MediaType.APPLICATION_JSON;
-import static org.infinispan.commons.dataconversion.MediaType.APPLICATION_OBJECT_TYPE;
-import static org.infinispan.commons.dataconversion.MediaType.TEXT_PLAIN_TYPE;
-import static org.infinispan.rest.RequestHeader.KEY_CONTENT_TYPE_HEADER;
-import static org.testng.AssertJUnit.assertEquals;
-
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.concurrent.CompletionStage;
-
-import javax.security.auth.Subject;
-
 import org.apache.logging.log4j.core.util.StringBuilderWriter;
 import org.infinispan.client.rest.RestClient;
 import org.infinispan.client.rest.RestEntity;
@@ -50,6 +35,7 @@ import org.infinispan.scripting.ScriptingManager;
 import org.infinispan.security.AuthorizationPermission;
 import org.infinispan.security.Security;
 import org.infinispan.security.actions.SecurityActions;
+import org.infinispan.security.mappers.ClusterRoleMapper;
 import org.infinispan.security.mappers.IdentityRoleMapper;
 import org.infinispan.server.core.DummyServerStateManager;
 import org.infinispan.server.core.ServerStateManager;
@@ -61,6 +47,23 @@ import org.infinispan.util.concurrent.CompletionStages;
 import org.testng.annotations.AfterClass;
 import org.testng.annotations.AfterMethod;
 import org.testng.annotations.Test;
+
+import javax.security.auth.Subject;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.concurrent.CompletionStage;
+
+import static org.infinispan.client.rest.configuration.Protocol.HTTP_11;
+import static org.infinispan.commons.dataconversion.MediaType.APPLICATION_JSON;
+import static org.infinispan.commons.dataconversion.MediaType.APPLICATION_OBJECT_TYPE;
+import static org.infinispan.commons.dataconversion.MediaType.TEXT_PLAIN_TYPE;
+import static org.infinispan.rest.RequestHeader.KEY_CONTENT_TYPE_HEADER;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
+import static org.testng.AssertJUnit.assertEquals;
 
 @Test(groups = "functional")
 public class AbstractRestResourceTest extends MultipleCacheManagersTest {

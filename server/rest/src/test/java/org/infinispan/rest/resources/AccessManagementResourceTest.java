@@ -2,20 +2,36 @@ package org.infinispan.rest.resources;
 
 import org.infinispan.client.rest.RestResponse;
 import org.infinispan.commons.dataconversion.internal.Json;
+import org.infinispan.configuration.global.GlobalConfigurationBuilder;
 import org.infinispan.rest.assertion.ResponseAssertion;
+import org.infinispan.security.AuthorizationPermission;
+import org.infinispan.security.mappers.ClusterRoleMapper;
 import org.testng.annotations.Test;
 
+import java.util.Set;
 import java.util.concurrent.CompletionStage;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.infinispan.client.rest.configuration.Protocol.HTTP_11;
 import static org.infinispan.client.rest.configuration.Protocol.HTTP_20;
+import static org.mockito.Mockito.doReturn;
+import static org.mockito.Mockito.spy;
+import static org.mockito.Mockito.when;
 
 /**
  * @since 15.0
  */
 @Test(groups = "functional", testName = "rest.AccessManagementResourceTest")
 public class AccessManagementResourceTest extends AbstractRestResourceTest {
+
+   protected void addSecurity(GlobalConfigurationBuilder globalBuilder) {
+      ClusterRoleMapper roleMapper = spy(ClusterRoleMapper.class);
+      doReturn(Set.of("admin")).when(roleMapper).listPrincipals("admin");
+      doReturn(Set.of("user1", "user2")).when(roleMapper).listPrincipals("user");
+      globalBuilder.security().authorization().enable().groupOnlyMapping(false).principalRoleMapper(roleMapper)
+            .role("ADMIN").permission(AuthorizationPermission.ALL)
+            .role("USER").permission(AuthorizationPermission.WRITE, AuthorizationPermission.READ, AuthorizationPermission.EXEC, AuthorizationPermission.BULK_READ);
+   }
 
    @Override
    public Object[] factory() {
@@ -61,5 +77,17 @@ public class AccessManagementResourceTest extends AbstractRestResourceTest {
       assertThat(jsonNode.at("USER").at("permissions").asList())
             .containsExactlyInAnyOrder("READ", "WRITE", "BULK_READ", "EXEC");
       assertThat(jsonNode.at("USER").at("inheritable").asBoolean()).isTrue();
+   }
+
+   @Test
+   public void testPrincipalListByRole() {
+      CompletionStage<RestResponse> response = adminClient.security().listPrincipals("admin");
+      ResponseAssertion.assertThat(response).isOk();
+      ResponseAssertion.assertThat(response).hasContentType("application/json");
+      Json jsonNode = Json.read(join(response).getBody());
+      assertThat(jsonNode.asList()).containsExactly("admin");
+      response = adminClient.security().listPrincipals("user");
+      jsonNode = Json.read(join(response).getBody());
+      assertThat(jsonNode.asList()).containsExactlyInAnyOrder("user1", "user2");
    }
 }

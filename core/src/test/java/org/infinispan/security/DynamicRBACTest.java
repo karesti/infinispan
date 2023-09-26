@@ -128,6 +128,7 @@ public class DynamicRBACTest extends MultipleCacheManagersTest {
          TestingUtil.TestPrincipal gandalf = new TestingUtil.TestPrincipal("gandalf");
          assertTrue(crm.principalToRoles(gandalf).contains("wizard"));
          assertTrue(crm.list("gandalf").contains("wizard"));
+         assertTrue(crm.listPrincipals("wizard").contains("gandalf"));
          assertFalse(joinerCrm.principalToRoles(gandalf).contains("wizard"));
          assertFalse(joinerCrm.list("gandalf").contains("wizard"));
 

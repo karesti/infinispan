@@ -13,5 +13,7 @@ public interface MutablePrincipalRoleMapper extends PrincipalRoleMapper {
 
    Set<String> list(String principalName);
 
+   Set<String> listPrincipals(String role);
+
    String listAll();
 }

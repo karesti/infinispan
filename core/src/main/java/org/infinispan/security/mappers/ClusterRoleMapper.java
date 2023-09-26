@@ -5,6 +5,7 @@ import java.util.Collections;
 import java.util.EnumSet;
 import java.util.HashSet;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 import org.infinispan.Cache;
 import org.infinispan.commons.marshall.ProtoStreamTypeIds;
@@ -95,6 +96,14 @@ public class ClusterRoleMapper implements MutablePrincipalRoleMapper {
       } else {
          return Collections.singleton(principalName);
       }
+   }
+
+   @Override
+   public Set<String> listPrincipals(String role) {
+      return clusterRoleReadMap.entrySet().stream()
+            .filter(e -> e.getValue().getRoles().contains(role))
+            .map(e -> e.getKey())
+            .collect(Collectors.toSet());
    }
 
    @Override

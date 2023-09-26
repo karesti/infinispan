@@ -1,15 +1,14 @@
 package org.infinispan.client.rest.impl.okhttp;
 
-import static org.infinispan.client.rest.impl.okhttp.RestClientOkHttp.EMPTY_BODY;
+import okhttp3.Request;
+import okhttp3.internal.Util;
+import org.infinispan.client.rest.RestResponse;
+import org.infinispan.client.rest.RestSecurityClient;
 
 import java.util.List;
 import java.util.concurrent.CompletionStage;
 
-import org.infinispan.client.rest.RestResponse;
-import org.infinispan.client.rest.RestSecurityClient;
-
-import okhttp3.Request;
-import okhttp3.internal.Util;
+import static org.infinispan.client.rest.impl.okhttp.RestClientOkHttp.EMPTY_BODY;
 
 /**
  * @author Tristan Tarrant &lt;tristan@infinispan.org&gt;
@@ -28,6 +27,19 @@ public class RestSecurityClientOkHttp implements RestSecurityClient {
    @Override
    public CompletionStage<RestResponse> listPrincipals() {
       return client.execute(baseSecurityURL, "principals");
+   }
+
+   @Override
+   public CompletionStage<RestResponse> listRoles() {
+      return listRoles(null) ;
+   }
+
+   @Override
+   public CompletionStage<RestResponse> listRoles(boolean detailed) {
+      if (detailed) {
+         return client.execute(baseSecurityURL, "roles-detail", null);
+      }
+      return listRoles();
    }
 
    @Override

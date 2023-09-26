@@ -1,0 +1,42 @@
+{
+  "observer": {
+    "inheritable": true,
+    "permissions": [
+      "MONITOR",
+      "ALL_READ"
+    ]
+  },
+  "application": {
+    "inheritable": true,
+    "permissions": [
+      "MONITOR",
+      "ALL_WRITE",
+      "EXEC",
+      "LISTEN",
+      "ALL_READ"
+    ]
+  },
+  "admin": {
+    "inheritable": true,
+    "permissions": [
+      "ALL"
+    ]
+  },
+  "monitor": {
+    "inheritable": true,
+    "permissions": [
+      "MONITOR"
+    ]
+  },
+  "deployer": {
+    "inheritable": true,
+    "permissions": [
+      "CREATE",
+      "MONITOR",
+      "ALL_WRITE",
+      "EXEC",
+      "LISTEN",
+      "ALL_READ"
+    ]
+  }
+}

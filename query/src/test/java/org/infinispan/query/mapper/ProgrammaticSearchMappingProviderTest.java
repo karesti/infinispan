@@ -1,7 +1,5 @@
 package org.infinispan.query.mapper;
 
-import org.hibernate.search.mapper.pojo.mapping.definition.annotation.FullTextField;
-import org.hibernate.search.mapper.pojo.mapping.definition.annotation.Indexed;
 import org.hibernate.search.mapper.pojo.mapping.definition.programmatic.ProgrammaticMappingConfigurationContext;
 import org.hibernate.search.mapper.pojo.mapping.definition.programmatic.TypeMappingStep;
 import org.infinispan.Cache;
@@ -40,8 +38,9 @@ public class ProgrammaticSearchMappingProviderTest extends SingleCacheManagerTes
       public void configure(MappingConfigurationContext context) {
          ProgrammaticMappingConfigurationContext pmc = context.programmaticMapping();
          TypeMappingStep typeMapping = pmc.type(ProgrammaticPerson.class);
-         typeMapping.indexed();
-         typeMapping.property("name").fullTextField();
+         typeMapping.indexed().enabled( true );
+         typeMapping.property("name").keywordField();
+         typeMapping.property("name").fullTextField("name_analyzed");
          typeMapping.property("surname").fullTextField();
          typeMapping.property("age").genericField(); // for numeric filtering/sorting
       }
@@ -61,5 +60,6 @@ public class ProgrammaticSearchMappingProviderTest extends SingleCacheManagerTes
 
       indexed.put("person1", new ProgrammaticPerson("William", "Shakespeare", 50));
       indexed.query("FROM " + ProgrammaticPerson.class.getName() + " WHERE name='William'");
+      indexed.query("FROM " + ProgrammaticPerson.class.getName() + " WHERE name_analyzed : 'Will*'");
    }
 }

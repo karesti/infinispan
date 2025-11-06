@@ -23,10 +23,10 @@ import java.io.PrintStream;
 import java.lang.reflect.Field;
 import java.util.List;
 
-import org.antlr.runtime.ANTLRStringStream;
-import org.antlr.runtime.CommonTokenStream;
-import org.antlr.runtime.Token;
-import org.antlr.runtime.tree.CommonTree;
+import org.antlr.v4.runtime.ANTLRStringStream;
+import org.antlr.v4.runtime.CommonTokenStream;
+import org.antlr.v4.runtime.Token;
+import org.antlr.v4.runtime.tree.CommonTree;
 import org.infinispan.query.objectfilter.impl.ql.parse.IckleLexer;
 import org.infinispan.query.objectfilter.impl.ql.parse.IckleParser;
 

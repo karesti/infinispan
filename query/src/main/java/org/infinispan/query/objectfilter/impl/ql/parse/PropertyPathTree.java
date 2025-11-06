@@ -15,7 +15,7 @@
  */
 package org.infinispan.query.objectfilter.impl.ql.parse;
 
-import org.antlr.runtime.tree.CommonTree;
+import org.antlr.v4.runtime.tree.CommonTree;
 import org.infinispan.query.objectfilter.impl.ql.PropertyPath;
 
 /**

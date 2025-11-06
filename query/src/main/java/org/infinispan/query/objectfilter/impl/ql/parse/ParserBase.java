@@ -22,22 +22,22 @@ import java.util.Deque;
 import java.util.LinkedList;
 import java.util.List;
 
-import org.antlr.runtime.CommonToken;
-import org.antlr.runtime.EarlyExitException;
-import org.antlr.runtime.FailedPredicateException;
-import org.antlr.runtime.MismatchedNotSetException;
-import org.antlr.runtime.MismatchedSetException;
-import org.antlr.runtime.MismatchedTokenException;
-import org.antlr.runtime.MismatchedTreeNodeException;
-import org.antlr.runtime.NoViableAltException;
-import org.antlr.runtime.Parser;
-import org.antlr.runtime.RecognitionException;
-import org.antlr.runtime.RecognizerSharedState;
-import org.antlr.runtime.Token;
-import org.antlr.runtime.TokenStream;
-import org.antlr.runtime.tree.CommonTree;
-import org.antlr.runtime.tree.Tree;
-import org.antlr.runtime.tree.TreeAdaptor;
+import org.antlr.v4.runtime.CommonToken;
+import org.antlr.v4.runtime.EarlyExitException;
+import org.antlr.v4.runtime.FailedPredicateException;
+import org.antlr.v4.runtime.MismatchedNotSetException;
+import org.antlr.v4.runtime.MismatchedSetException;
+import org.antlr.v4.runtime.MismatchedTokenException;
+import org.antlr.v4.runtime.MismatchedTreeNodeException;
+import org.antlr.v4.runtime.NoViableAltException;
+import org.antlr.v4.runtime.Parser;
+import org.antlr.v4.runtime.RecognitionException;
+import org.antlr.v4.runtime.RecognizerSharedState;
+import org.antlr.v4.runtime.Token;
+import org.antlr.v4.runtime.TokenStream;
+import org.antlr.v4.runtime.tree.CommonTree;
+import org.antlr.v4.runtime.tree.Tree;
+import org.antlr.v4.runtime.tree.TreeAdaptor;
 
 /**
  * Base class for the generated parser. This class is stateful, so it should not be reused for parsing multiple

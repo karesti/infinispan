@@ -15,13 +15,12 @@
  */
 package org.infinispan.query.objectfilter.impl.ql.parse;
 
-import org.antlr.runtime.CommonToken;
-import org.antlr.runtime.Token;
-import org.antlr.runtime.tree.CommonTree;
-import org.antlr.runtime.tree.Tree;
+import org.antlr.v4.runtime.CommonToken;
+import org.antlr.v4.runtime.Token;
+import org.antlr.v4.runtime.tree.Tree;
 
 /**
- * A {@link CommonTree} representing an entity name.
+ * A {@link Tree} representing an entity name.
  *
  * @since 9.0
  */

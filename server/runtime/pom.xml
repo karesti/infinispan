@@ -266,7 +266,7 @@
       <!-- Test dependencies -->
       <dependency>
          <groupId>org.antlr</groupId>
-         <artifactId>antlr-runtime</artifactId>
+         <artifactId>antlr4-runtime</artifactId>
          <scope>test</scope>
       </dependency>
       <dependency>

@@ -15,7 +15,7 @@
  */
 package org.infinispan.query.objectfilter.impl.ql;
 
-import org.antlr.runtime.tree.Tree;
+import org.antlr.v4.runtime.tree.Tree;
 
 /**
  * Defines hooks for implementing custom logic when walking the parse tree of a JPQL query.

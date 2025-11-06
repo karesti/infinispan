@@ -16,129 +16,21 @@
 
 lexer grammar IckleLexer;
 
-options {
-    superClass=LexerBase;
-}
-
-tokens {
-//VIRTUAL TOKENS
-  ALIAS_NAME;
-  ALIAS_REF;
-  BETWEEN_LIST;
-  COLLATE;
-  COLLECTION_EXPRESSION;
-  DOT_CLASS;
-  ENTITY_NAME;
-  ENTITY_PERSISTER_REF;
-  GROUPING_VALUE;
-  IN_LIST;
-  IS_NOT_EMPTY;
-  IS_NOT_NULL;
-  IS_NULL;
-  JAVA_CONSTANT;
-  POSITIONAL_PARAM;
-  NAMED_PARAM;
-  NOT_BETWEEN;
-  NOT_IN;
-  NOT_LIKE;
-  NOT_MEMBER_OF;
-  NOT_WITHIN;
-  ORDER_SPEC;
-  PATH;
-  PERSISTER_JOIN;
-  PERSISTER_SPACE;
-  PROP_FETCH;
-  PROPERTY_JOIN;
-  PROPERTY_REFERENCE;
-  QUALIFIED_JOIN;
-  QUERY_SPEC;
-  QUERY;
-  SELECT_FROM;
-  SELECT_ITEM;
-  SELECT_LIST;
-  SORT_SPEC;
-  VECTOR_EXPR;
-  CONST_STRING_VALUE;
-  FT_OCCUR_MUST;
-  FT_OCCUR_FILTER;
-  FT_OCCUR_SHOULD;
-  FT_OCCUR_MUST_NOT;
-  FT_TERM;
-  FT_REGEXP;
-  FT_RANGE;
-  KNN_TERM;
-
-//SOFT KEYWORDS
-  ALL;
-  AND;
-  ANY;
-  AS;
-  AVG;
-  BETWEEN;
-  BOUNDINGBOX;
-  CIRCLE;
-  COUNT;
-  CROSS;
-  DISTANCE;
-  DISTINCT;
-  DELETE;
-  ELEMENTS;
-  EMPTY;
-  ESCAPE;
-  EXISTS;
-  FETCH;
-  FILTERING;
-  FROM;
-  FULL;
-  GROUP_BY;
-  HAVING;
-  IN;
-  INDEX;
-  INDICES;
-  INNER;
-  IS_EMPTY;
-  IS;
-  JOIN;
-  KILOMETERS;
-  LEFT;
-  LIKE;
-  MAX;
-  MEMBER_OF;
-  METERS;
-  MILES;
-  MIN;
-  NAUTICAL_MILES;
-  NOT;
-  OBJECT;
-  ON;
-  OR;
-  ORDER_BY;
-  OUTER;
-  POLYGON;
-  PROPERTIES;
-  RIGHT;
-  SCORE;
-  SELECT;
-  SIZE;
-  SOME;
-  SUM;
-  VERSION;
-  WHERE;
-  WITH;
-  WITHIN;
-  YARDS;
-}
-
 @header {
 package org.infinispan.query.objectfilter.impl.ql.parse;
 }
 
-WS: (' ' | '\t' | '\u000B' | '\f' | EOL)+ { $channel = HIDDEN; };
+WS: (' ' | '\t' | '\u000B' | '\f' | EOL)+ -> channel(HIDDEN);
 
-fragment NL: ('\r' | '\n') ;
+fragment
+NL: ('\r' | '\n') ;
 
-fragment EOL: NL+ ;
+fragment
+EOL: NL+ ;
 
+// ----------------------
+// Literals
+// ----------------------
 HEX_LITERAL: '0' ('x'|'X') HEX_DIGIT+ INTEGER_TYPE_SUFFIX? ;
 
 INTEGER_LITERAL: ('0' | '1'..'9' '0'..'9'*) ;
@@ -147,9 +39,11 @@ DECIMAL_LITERAL: ('0' | '1'..'9' '0'..'9'*) INTEGER_TYPE_SUFFIX ;
 
 OCTAL_LITERAL: '0' ('0'..'7')+ INTEGER_TYPE_SUFFIX? ;
 
-fragment HEX_DIGIT: ('0'..'9' | 'a'..'f' | 'A'..'F') ;
+fragment
+HEX_DIGIT: ('0'..'9' | 'a'..'f' | 'A'..'F') ;
 
-fragment INTEGER_TYPE_SUFFIX: ('l'|'L') ;
+fragment
+INTEGER_TYPE_SUFFIX: ('l'|'L') ;
 
 FLOATING_POINT_LITERAL:
   ('0'..'9')+ '.' ('0'..'9')* EXPONENT? FLOAT_TYPE_SUFFIX?
@@ -158,9 +52,11 @@ FLOATING_POINT_LITERAL:
   |  ('0'..'9')+ FLOAT_TYPE_SUFFIX
   ;
 
-fragment EXPONENT: ('e'|'E') ('+'|'-')? ('0'..'9')+ ;
+fragment
+EXPONENT: ('e'|'E') ('+'|'-')? ('0'..'9')+ ;
 
-fragment FLOAT_TYPE_SUFFIX: ('f'|'F') | ('d'|'D') ;
+fragment
+FLOAT_TYPE_SUFFIX: ('f'|'F') | ('d'|'D') ;
 
 CHARACTER_LITERAL:
   '\'' ( ESCAPE_SEQUENCE | ~('\''|'\\') ) '\'' { setText(getText().substring(1, getText().length() - 1)); }
@@ -171,56 +67,52 @@ STRING_LITERAL:
   |  ('\'' ( ESCAPE_SEQUENCE | ~('\\'|'\'') )* '\'')+ { setText(getText().substring(1, getText().length() - 1).replace("''", "'")); }
   ;
 
-fragment ESCAPE_SEQUENCE:
-  '\\' ('b'|'t'|'n'|'f'|'r'|'\"'|'\''|'\\')
+fragment
+ESCAPE_SEQUENCE:
+  '\\' [btnfr"'\\]
   |  UNICODE_ESCAPE
   |  OCTAL_ESCAPE
   ;
 
-fragment OCTAL_ESCAPE:
+fragment
+OCTAL_ESCAPE:
   '\\' ('0'..'3') ('0'..'7') ('0'..'7')
   |  '\\' ('0'..'7') ('0'..'7')
   |  '\\' ('0'..'7')
   ;
 
-fragment UNICODE_ESCAPE:
+fragment
+UNICODE_ESCAPE:
   '\\' 'u' HEX_DIGIT HEX_DIGIT HEX_DIGIT HEX_DIGIT
   ;
 
 REGEXP_LITERAL
-   :  '/' ( ~ ( NL | '\\' | '/' ) | '\\' ~( NL ) )* '/' { setText(getText().substring(1, getText().length() - 1)); }
+   :  '/' ( ~[\r\n\\/]| '\\' ~[\r\n] )* '/'
+   { setText(getText().substring(1, getText().length() - 1)); }
    ;
 
+// ----------------------
+// Keywords / Operators
+// ----------------------
 TO: ('t'|'T') ('o|O') ;
-
 TRUE: ('t'|'T') ('r'|'R') ('u'|'U') ('e'|'E') ;
-
 FALSE: ('f'|'F') ('a'|'A') ('l'|'L') ('s'|'S') ('e'|'E') ;
-
 NULL: ('n'|'N') ('u'|'U') ('l'|'L') ('l'|'L') ;
-
 EQUALS: '=' ;
-
 COLON: ':' ;
-
 NOT_EQUAL: '<>' | '!=' ;
-
 PARAM: '?' ;
-
 EXCLAMATION: '!' ;
-
 GREATER: '>' ;
-
 GREATER_EQUAL: '>=' ;
-
 LESS: '<' ;
-
 LESS_EQUAL: '<=' ;
-
 AND: '&&' ;
-
 OR: '||' ;
 
+// ----------------------
+// Identifiers
+// ----------------------
 IDENTIFIER:
   ('a'..'z' | 'A'..'Z' | '_' | '$' | '\u0080'..'\ufffe') ('a'..'z' | 'A'..'Z' | '_' | '$' | '0'..'9' | '\u0080'..'\ufffe')*
   ;
@@ -230,31 +122,17 @@ QUOTED_IDENTIFIER:
   ;
 
 LPAREN: '(' ;
-
 RPAREN: ')' ;
-
 LSQUARE: '[' ;
-
 RSQUARE: ']' ;
-
 LCURLY: '{' ;
-
 RCURLY: '}' ;
-
 COMMA: ',' ;
-
 DOT: '.' ;
-
 PLUS: '+' ;
-
 MINUS: '-' ;
-
 ASTERISK: '*' ;
-
 HASH: '#' ;
-
 TILDE: '~' ;
-
 CARAT: '^' ;
-
 ARROW: '<->' ;

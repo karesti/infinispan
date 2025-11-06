@@ -2,9 +2,9 @@ package org.infinispan.query.objectfilter.impl.ql.parse;
 
 import java.io.PrintStream;
 
-import org.antlr.runtime.CharStream;
-import org.antlr.runtime.Lexer;
-import org.antlr.runtime.RecognizerSharedState;
+import org.antlr.v4.runtime.CharStream;
+import org.antlr.v4.runtime.Lexer;
+import org.antlr.v4.runtime.RecognizerSharedState;
 
 /**
  * Base class for the generated lexer.

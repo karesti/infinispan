@@ -1,5 +1,5 @@
 /*
- * Copyright 2016, Red Hat Inc. and/or its affiliates.
+ * Copyright 2025, Red Hat Inc. and/or its affiliates.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -88,21 +88,16 @@ whereClause
 	;
 
 selectFrom
-   :  sc=selectClause? fc=fromClause  { generateImplicitSelectFrom((Tree) $sc.tree, (Tree) $fc.tree, $fc.aliasList) }
-   ;
+    : sc=selectClause? fc=fromClause
+    ;
 
-fromClause returns [List aliasList]
-scope {
-	List<String> aliases;
-}
-@init { $fromClause::aliases = new ArrayList<>(); }
-@after { $aliasList = $fromClause::aliases; }
-   :  from_key persisterSpaces
-   ;
+fromClause
+    : from_key persisterSpaces
+    ;
 
 persisterSpaces
-   :  ps+=persisterSpace ( COMMA ps+=persisterSpace )*  { generatePersisterSpacesTree($ps) }
-   ;
+    : ps+=persisterSpace ( COMMA ps+=persisterSpace )*
+    ;
 
 persisterSpace
 	:	persisterSpaceRoot ( qualifiedJoin | crossJoin )*
@@ -110,18 +105,15 @@ persisterSpace
 
 crossJoin
 	:	cross_key join_key mainEntityPersisterReference
-		 (PERSISTER_JOIN[$join_key.start, "persister-join"] cross_key mainEntityPersisterReference)
+		 (PERSISTER_JOIN cross_key mainEntityPersisterReference)
 	;
 
 qualifiedJoin
-@init { boolean isEntityReference = false; boolean hasFetch = false; }
-@after { if (!hasFetch) $fromClause::aliases.add(((Tree)$ac.tree).getText()); }
-	:	nonCrossJoinType join_key (fetch_key {hasFetch = true;})? path ac=aliasClause[true]
-   (on_key { isEntityReference = true; } logicalExpression
-   | propertyFetch? withClause?)
-	 {isEntityReference}? (PERSISTER_JOIN[$join_key.start, "persister-join"] nonCrossJoinType (ENTITY_PERSISTER_REF ENTITY_NAME<EntityNameTree>[$path.start, $path.text, (Tree) $path.tree] aliasClause?) (on_key logicalExpression))
-	 (PROPERTY_JOIN[$join_key.start, "property-join"] nonCrossJoinType fetch_key? aliasClause? propertyFetch? (PATH path) withClause?)
-	;
+    : nonCrossJoinType join_key fetch_key? path ac=aliasClause
+      (on_key logicalExpression | propertyFetch? withClause?)?
+      (PERSISTER_JOIN nonCrossJoinType ENTITY_PERSISTER_REF aliasClause?)?
+      (PROPERTY_JOIN nonCrossJoinType fetch_key? aliasClause? propertyFetch? PATH path withClause?)?
+    ;
 
 withClause
 	:	with_key logicalExpression
@@ -148,27 +140,23 @@ backtrack=true;
 	;
 
 mainEntityPersisterReference
-@after	{ $fromClause::aliases.add(((Tree)$ac.tree).getText()); }
-	:	entityName ac=aliasClause[true] propertyFetch?
-		 (ENTITY_PERSISTER_REF entityName aliasClause? propertyFetch?)
-	;
+    : entityName ac=aliasClause propertyFetch? (ENTITY_PERSISTER_REF entityName aliasClause? propertyFetch?)?
+    ;
 
 propertyFetch
-   :  fetch_key all_key properties_key  PROP_FETCH[$fetch_key.start, "property-fetch"]
+   :  fetch_key all_key properties_key
    ;
 
-hibernateLegacySyntax returns [boolean isPropertyJoin]
-@init {$isPropertyJoin = false;}
-@after	{ $fromClause::aliases.add(((Tree)$ad.tree).getText()); }
-	:	ad=aliasDeclaration in_key
-	(collectionExpression {$isPropertyJoin = true;}  (PROPERTY_JOIN INNER[$in_key.start, "inner legacy"] aliasDeclaration collectionExpression))
-	;
+hibernateLegacySyntax
+    : aliasDeclaration in_key
+      (collectionExpression
+      (PROPERTY_JOIN INNER aliasDeclaration collectionExpression)?)?
+    ;
 
 jpaCollectionReference
-@after	{ $fromClause::aliases.add(((Tree)$ac.tree).getText()); }
-	:	in_key LPAREN propertyReference RPAREN ac=aliasClause[true]
-		 (PROPERTY_JOIN INNER[$in_key.start, "inner"] aliasClause? propertyReference)
-	;
+    : in_key LPAREN propertyReference RPAREN ac=aliasClause
+      (PROPERTY_JOIN INNER aliasClause? propertyReference)?
+    ;
 
 selectClause
 	:	select_key distinct_key? rootSelectExpression
@@ -188,28 +176,21 @@ explicitSelectItem
 	;
 
 selectExpression
-@init { if (state.backtracking == 0) pushEnableParameterUsage(false); }
-@after { popEnableParameterUsage(); }
-//PARAMETERS CAN'T BE USED  This verification should be scoped
-	:	expression aliasClause[false]
-		 (SELECT_ITEM expression aliasClause?)
-	;
+    : expression ac=aliasClause (SELECT_ITEM expression aliasClause?)?
+    ;
 
-aliasClause[boolean generateAlias]
-options {
-    k=2;
-}	:	 {$generateAlias}? ALIAS_NAME[buildUniqueImplicitAlias()]
-		
-	|	aliasDeclaration
-	|	as_key! aliasDeclaration
-	;
+aliasClause
+    : ALIAS_NAME
+    | aliasDeclaration
+    | as_key aliasDeclaration
+    ;
 
 aliasDeclaration
-	:	IDENTIFIER  ALIAS_NAME[$IDENTIFIER]
+	:	IDENTIFIER
 	;
 
 aliasReference
-	:	IDENTIFIER  ALIAS_REF[$IDENTIFIER]
+	:	IDENTIFIER
 	;
 
 jpaSelectObjectSyntax
@@ -217,7 +198,7 @@ jpaSelectObjectSyntax
 	;
 
 orderByClause
-   :  order_by_key sortSpecification ( COMMA! sortSpecification )*
+   :  order_by_key sortSpecification ( COMMA sortSpecification )*
    ;
 
 sortSpecification
@@ -225,9 +206,10 @@ sortSpecification
 	;
 
 orderingSpecification
-	:	ascending_key  ORDER_SPEC[$ascending_key.start, "asc"]
-	|	descending_key  ORDER_SPEC[$descending_key.start, "desc"]
-	|   ORDER_SPEC["asc"]
+   returns [String order]
+	:	ascending_key  { $order = "asc"; }
+	|	descending_key { $order = "desc"; }
+	|  o=ORDER_SPEC   { $order = $o.getText(); }
 	;
 
 sortKey
@@ -238,8 +220,9 @@ sortKey
 	;
 
 collationSpecification
-	:  collate_key collateName  COLLATE[$collateName.start, $collateName.text]
-   ;
+    returns [String collation]
+  : COLLATE_KEY n=collateName { $collation = $n.text; }
+  ;
 
 collateName
 	:	dotIdentifierPath
@@ -267,45 +250,46 @@ negatedExpression
    ;
 
 equalityExpression
-@init { boolean isNull = false; boolean isNegated = false; }
-   :  (ftOccurrence? ftFieldPath COLON)=> fullTextExpression
-   |  (vectorFieldPath ARROW)=> knnExpression
-   |  (relationalExpression  relationalExpression)
-      (is_key (not_key {isNegated = true;})? (NULL {isNull = true;} | empty_key)
-          {isNull && isNegated}? (IS_NOT_NULL[$not_key.start, "is not null"] $equalityExpression)
-          {isNull && !isNegated}? (IS_NULL[$NULL, "is null"] $equalityExpression)
-          {!isNull && isNegated}? (IS_NOT_EMPTY $equalityExpression)
-          (IS_EMPTY $equalityExpression)
-      |  (op=EQUALS | op=NOT_EQUAL) relationalExpression  ($op $equalityExpression relationalExpression)
-      )*
-	;
+    locals [boolean isNull = false, boolean isNegated = false]
+    : fullTextExpression
+    | knnExpression
+    | relationalExpression equalityTail*
+    ;
+
+// null/empty
+equalityTail
+    : isClause
+    | comparisonClause
+    ;
+
+// IS NULL, IS NOT NULL, IS EMPTY, IS NOT EMPTY
+isClause
+    : IS_KEY (NOT_KEY)?
+      (NULL | EMPTY_KEY)
+    ;
+
+// (=, !=)
+comparisonClause
+    : op=(EQUALS | NOT_EQUAL) relationalExpression
+    ;
 
 relationalExpression
-@init {boolean isNegated = false;}
-	:	(additiveExpression  additiveExpression)
-	(
-	(	( op=LESS | op=GREATER | op=LESS_EQUAL | op=GREATER_EQUAL ) additiveExpression
-			 ($op $relationalExpression additiveExpression)
-		)+
-	|  (not_key {isNegated = true;} )?
-		(	in_key inList
-			 {isNegated}? (NOT_IN[$not_key.start, "not in"] $relationalExpression inList)
-			 (in_key $relationalExpression inList)
-		|	between_key betweenList
-			 {isNegated}? (NOT_BETWEEN[$not_key.start, "not between"] $relationalExpression betweenList)
-			 (between_key $relationalExpression betweenList)
-		|	like_key additiveExpression likeEscape?
-			 {isNegated}? (NOT_LIKE[$not_key.start, "not like"] $relationalExpression additiveExpression likeEscape?)
-			 (like_key $relationalExpression additiveExpression likeEscape?)
-		|	member_of_key path
-			 {isNegated}? (NOT_MEMBER_OF[$not_key.start, "not member of"] $relationalExpression (PATH path))
-			 (member_of_key $relationalExpression (PATH path))
-		|   within_key geoShape
-			 {isNegated}? (NOT_WITHIN[$not_key.start, "not within"] $relationalExpression geoShape)
-			 (within_key $relationalExpression geoShape)
-		)
-	)?
-	;
+locals [boolean isNegated = false]
+    : additiveExpression relationalTail*
+    ;
+
+relationalTail
+    : op=(LESS | GREATER | LESS_EQUAL | GREATER_EQUAL) additiveExpression
+    | not_key? relationalOperator
+    ;
+
+relationalOperator
+    : in_key inList
+    | between_key betweenList
+    | like_key additiveExpression likeEscape?
+    | member_of_key path
+    | within_key geoShape
+    ;
 
 geoShape
     : geoCircle
@@ -314,15 +298,29 @@ geoShape
     ;
 
 geoCircle
-    : circle_key LPAREN! lat=atom COMMA! lon=atom COMMA! radius=distanceVal RPAREN!
+    returns [double lat, double lon, double radius]
+    : circle_key
+      LPAREN
+      latAtom=atom COMMA
+      lonAtom=atom COMMA
+      radiusAtom=distanceVal
+      RPAREN
     ;
 
 geoBoundingBox
-    : boundingBox_key LPAREN! tlLat=atom COMMA! tlLon=atom COMMA! brLat=atom COMMA! brLon=atom RPAREN!
+    returns [double tlLat, double tlLon, double brLat, double brLon]
+    : boundingBox_key
+      LPAREN
+      tlLatAtom=atom COMMA
+      tlLonAtom=atom COMMA
+      brLatAtom=atom COMMA
+      brLonAtom=atom
+      RPAREN
     ;
 
 geoPolygon
-    : polygon_key LPAREN! expressionOrVector RPAREN!
+    returns [Object polygonExpr]
+    : polygon_key LPAREN expr=expressionOrVector RPAREN
     ;
 
 likeEscape
@@ -335,8 +333,12 @@ inList
 	;
 
 betweenList
-	:  lower=additiveExpression and_key upper=additiveExpression  (BETWEEN_LIST $lower $upper)
-	;
+    returns [Object lower, Object upper]
+    : lowerExpr=additiveExpression
+      and_key
+      upperExpr=additiveExpression
+    ;
+
 
 additiveExpression
    :  quantifiedExpression
@@ -350,11 +352,11 @@ additiveExpression
    ;
 
 distanceFunction
-   : distance_key LPAREN! propertyReference COMMA! lat=atom COMMA! lon=atom distanceFunctionUnit? RPAREN!
+   : distance_key LPAREN propertyReference COMMA lat=atom COMMA lon=atom distanceFunctionUnit? RPAREN
    ;
 
 distanceFunctionUnit
-   : COMMA! unit=unitVal
+   : COMMA unit=unitVal
    ;
 
 quantifiedExpression
@@ -369,25 +371,25 @@ standardFunction
    ;
 
 sizeFunction
-   :   size_key LPAREN! propertyReference RPAREN!
+   :   size_key LPAREN propertyReference RPAREN
    ;
 
 indexFunction
-   :   index_key LPAREN! aliasReference RPAREN!
+   :   index_key LPAREN aliasReference RPAREN
    ;
 
 versionFunction
-   :   version_key LPAREN! aliasReference RPAREN!
+   :   version_key LPAREN aliasReference RPAREN
    ;
 
 scoreFunction
-   :   score_key LPAREN! aliasReference RPAREN!
+   :   score_key LPAREN aliasReference RPAREN
    ;
 
 setFunction
 @init { boolean generateOmittedElement = true; if (state.backtracking == 0) pushEnableParameterUsage(true); }
 @after { popEnableParameterUsage(); }
-	:	( sum_key | avg_key | max_key | min_key ) LPAREN! additiveExpression RPAREN!
+	:	( sum_key | avg_key | max_key | min_key ) LPAREN additiveExpression RPAREN
 	|	count_key LPAREN ( ASTERISK {generateOmittedElement = false;} | ( ( (distinct_key | all_key) {generateOmittedElement = false;} )? countFunctionArguments ) ) RPAREN
 		 {generateOmittedElement}? (count_key ASTERISK? ALL countFunctionArguments?)
 		 (count_key ASTERISK? distinct_key? all_key? countFunctionArguments?)
@@ -400,11 +402,11 @@ countFunctionArguments
 	;
 
 collectionExpression
-   :   (elements_key | indices_key) LPAREN! propertyReference RPAREN!
+   :   (elements_key | indices_key) LPAREN propertyReference RPAREN
    ;
 
 vectorSearch
-   : LSQUARE! expressionOrVector RSQUARE!
+   : LSQUARE expressionOrVector RSQUARE
    ;
 
 atom
@@ -417,7 +419,7 @@ atom
    |  constant
    |  parameterSpecification { if (!isParameterUsageEnabled()) throw new RecognitionException(input); }
 	//validate using Scopes if it is enabled or not to use parameterSpecification.. if not generate an exception
-   |  LPAREN! expressionOrVector RPAREN!
+   |  LPAREN expressionOrVector RPAREN
    |  vectorSearch
    ;
 
@@ -436,10 +438,10 @@ unitVal
    ;
 
 parameterSpecification
-   :  COLON IDENTIFIER  NAMED_PARAM[$IDENTIFIER]
-   |  PARAM INTEGER_LITERAL  POSITIONAL_PARAM[$INTEGER_LITERAL]
-   |  PARAM
-	;
+    : COLON id=IDENTIFIER
+    | PARAM intVal=INTEGER_LITERAL
+    | PARAM
+    ;
 
 expressionOrVector
 @init {boolean isVectorExp = false;}
@@ -451,22 +453,22 @@ expressionOrVector
 vectorExpr
 @init	{ if (state.backtracking == 0) pushEnableParameterUsage(true); }
 @after	{ popEnableParameterUsage(); }
-	:	COMMA! expression (COMMA! expression)*
+	:	COMMA expression (COMMA expression)*
 	;
 
 identPrimary
 	: 	IDENTIFIER
 		(	DOT IDENTIFIER
-		|	LSQUARE expression RSQUARE!
-		|	LSQUARE RSQUARE!
-		|	LPAREN exprList RPAREN!
+		|	LSQUARE expression RSQUARE
+		|	LSQUARE RSQUARE
+		|	LPAREN exprList RPAREN
 		)*
 	;
 
 exprList
 @init { if (state.backtracking == 0) pushEnableParameterUsage(true); }
 @after { popEnableParameterUsage(); }
-	:	expression (COMMA! expression)*
+	:	expression (COMMA expression)*
 	|
 	;
 
@@ -501,10 +503,8 @@ signedNumericLiteral
    ;
 
 entityName
-   :  dotIdentifierPath  ENTITY_NAME<EntityNameTree>[$dotIdentifierPath.start, $dotIdentifierPath.text, (Tree) $dotIdentifierPath.tree]
-      //here the polymorphic entities should be resolved... to:
-      // 1. to place inside the ENTITY_NAME Token all its possible values, otherwise it would be much difficult to return to the place that should explit the sentence
-   ;
+    : dip=dotIdentifierPath
+    ;
 
 propertyReference
 	:	path  (PROPERTY_REFERENCE path)
@@ -517,262 +517,257 @@ dotIdentifierPath
 path
 	:	IDENTIFIER
 		(	DOT IDENTIFIER
-		|	LSQUARE expression RSQUARE!
-		|	LSQUARE RSQUARE!
+		|	LSQUARE expression RSQUARE
+		|	LSQUARE RSQUARE
 		)*
 	;
 
 object_key
-   :   {validateSoftKeyword("object")}?=> IDENTIFIER  OBJECT[$IDENTIFIER]
+   :   IDENTIFIER
 	;
 
 sum_key
-   :   {validateSoftKeyword("sum")}?=> IDENTIFIER  SUM[$IDENTIFIER]
+   :   IDENTIFIER
 	;
 
 avg_key
-   :   {validateSoftKeyword("avg")}?=> IDENTIFIER  AVG[$IDENTIFIER]
+   :   IDENTIFIER
 	;
 
 max_key
-   :   {validateSoftKeyword("max")}?=> IDENTIFIER  MAX[$IDENTIFIER]
+   :   IDENTIFIER
 	;
 
 min_key
-   :   {validateSoftKeyword("min")}?=> IDENTIFIER  MIN[$IDENTIFIER]
+   :   IDENTIFIER
 	;
 
 count_key
-   :   {validateSoftKeyword("count")}?=> IDENTIFIER  COUNT[$IDENTIFIER]
+   :   IDENTIFIER
 	;
 
 version_key
-   :   {validateSoftKeyword("version")}?=> IDENTIFIER  VERSION[$IDENTIFIER]
+   :   IDENTIFIER
 	;
 
 score_key
-   :   {validateSoftKeyword("score")}?=> IDENTIFIER  SCORE[$IDENTIFIER]
+   :   IDENTIFIER
 	;
 
 size_key
-   :   {validateSoftKeyword("size")}?=> IDENTIFIER  SIZE[$IDENTIFIER]
+   :   IDENTIFIER
 	;
 
 index_key
-   :   {validateSoftKeyword("index")}?=> IDENTIFIER  INDEX[$IDENTIFIER]
+   :   IDENTIFIER
 	;
 
 any_key
-   :   {validateSoftKeyword("any")}?=> IDENTIFIER  ANY[$IDENTIFIER]
+   :   IDENTIFIER
 	;
 
 exists_key
-   :   {validateSoftKeyword("exists")}?=> IDENTIFIER  EXISTS[$IDENTIFIER]
+   :   IDENTIFIER
 	;
 
 some_key
-   :   {validateSoftKeyword("some")}?=> IDENTIFIER  SOME[$IDENTIFIER]
+   :   IDENTIFIER
 	;
 
 escape_key
-   :   {validateSoftKeyword("escape")}?=> IDENTIFIER  ESCAPE[$IDENTIFIER]
+   :   IDENTIFIER
 	;
 
 like_key
-   :   {validateSoftKeyword("like")}?=> IDENTIFIER  LIKE[$IDENTIFIER]
+   :   IDENTIFIER
 	;
 
 between_key
-   :   {validateSoftKeyword("between")}?=> IDENTIFIER  BETWEEN[$IDENTIFIER]
+   :   IDENTIFIER
 	;
 
 member_of_key
-	:   {validateSoftKeyword("member") && validateSoftKeyword(2, "of")}?=> id=IDENTIFIER IDENTIFIER  MEMBER_OF[$id]
+	:   id=IDENTIFIER IDENTIFIER
 	;
 
 empty_key
-   :   {validateSoftKeyword("empty")}?=> IDENTIFIER  EMPTY[$IDENTIFIER]
+   :   IDENTIFIER
 	;
 
 is_key
-   :   {validateSoftKeyword("is")}?=> IDENTIFIER  IS[$IDENTIFIER]
+   :   IDENTIFIER
    ;
 
 or_key
    :   OR
-   |   {validateSoftKeyword("or")}?=> IDENTIFIER  OR[$IDENTIFIER]
+   |   IDENTIFIER
 	;
 
 and_key
    :   AND
-   |   {validateSoftKeyword("and")}?=> IDENTIFIER  AND[$IDENTIFIER]
+   |   IDENTIFIER
 	;
 
 not_key
    :   EXCLAMATION
-   |   {validateSoftKeyword("not")}?=> IDENTIFIER  NOT[$IDENTIFIER]
+   |   IDENTIFIER
    ;
 
 to_key
-   :   {validateSoftKeyword("to")}?=> IDENTIFIER  TO[$IDENTIFIER]
+   :   IDENTIFIER
    ;
 
 having_key
-   :   {validateSoftKeyword("having")}?=> IDENTIFIER  HAVING[$IDENTIFIER]
+   :   IDENTIFIER
 	;
 
 filtering_key
-   :   {validateSoftKeyword("filtering")}?=> IDENTIFIER  FILTERING[$IDENTIFIER]
+   :   IDENTIFIER
 	;
 
 with_key
-   :   {validateSoftKeyword("with")}?=> IDENTIFIER  WITH[$IDENTIFIER]
+   :   IDENTIFIER
 	;
 
 within_key
-   :   {validateSoftKeyword("within")}?=> IDENTIFIER  WITHIN[$IDENTIFIER]
+   :   IDENTIFIER
    ;
 
 distance_key
-   :   {validateSoftKeyword("distance")}?=> IDENTIFIER  DISTANCE[$IDENTIFIER]
+   :   IDENTIFIER
    ;
 
 circle_key
-   :   {validateSoftKeyword("circle")}?=> IDENTIFIER  CIRCLE[$IDENTIFIER]
+   :   IDENTIFIER
    ;
 
 boundingBox_key
-   :   {validateSoftKeyword("box")}?=> IDENTIFIER  BOUNDINGBOX[$IDENTIFIER]
+   :   IDENTIFIER
    ;
 
 polygon_key
-   :   {validateSoftKeyword("polygon")}?=> IDENTIFIER  POLYGON[$IDENTIFIER]
+   :   IDENTIFIER
    ;
 
 on_key
-   :   {validateSoftKeyword("on")}?=> IDENTIFIER  ON[$IDENTIFIER]
+   :   IDENTIFIER
 	;
 
 meters_key
-   :  {validateSoftKeyword("m")}?=> IDENTIFIER  METERS[$IDENTIFIER]
-   |  {validateSoftKeyword("meters")}?=> IDENTIFIER  METERS[$IDENTIFIER]
+   :  IDENTIFIER
    ;
 
 kilometers_key
-   :  {validateSoftKeyword("km")}?=> IDENTIFIER  KILOMETERS[$IDENTIFIER]
-   |  {validateSoftKeyword("kilometers")}?=> IDENTIFIER  KILOMETERS[$IDENTIFIER]
+   :  IDENTIFIER
+   |  IDENTIFIER
    ;
 
 miles_key
-   :  {validateSoftKeyword("mi")}?=> IDENTIFIER  MILES[$IDENTIFIER]
-   |  {validateSoftKeyword("miles")}?=> IDENTIFIER  MILES[$IDENTIFIER]
+   :  IDENTIFIER
    ;
 
 yards_key
-   :  {validateSoftKeyword("yd")}?=> IDENTIFIER  YARDS[$IDENTIFIER]
-   |  {validateSoftKeyword("yards")}?=> IDENTIFIER  YARDS[$IDENTIFIER]
+   :  IDENTIFIER
    ;
 
 nautical_miles_key
-   :  {validateSoftKeyword("nm")}?=> IDENTIFIER  NAUTICAL_MILES[$IDENTIFIER]
-   |  {validateSoftKeyword("nmi")}?=> IDENTIFIER  NAUTICAL_MILES[$IDENTIFIER]
-   |  {validateSoftKeyword("nauticalmiles")}?=> IDENTIFIER  NAUTICAL_MILES[$IDENTIFIER]
+   :  IDENTIFIER
    ;
 
 indices_key
-   :   {validateSoftKeyword("indices")}?=> IDENTIFIER  INDICES[$IDENTIFIER]
+   :   IDENTIFIER
 	;
 
 cross_key
-   :   {validateSoftKeyword("cross")}?=> IDENTIFIER  CROSS[$IDENTIFIER]
+   :   IDENTIFIER
 	;
 
 join_key
-   :   {validateSoftKeyword("join")}?=> IDENTIFIER  JOIN[$IDENTIFIER]
+   :   IDENTIFIER
 	;
 
 inner_key
-   :   {validateSoftKeyword("inner")}?=> IDENTIFIER  INNER[$IDENTIFIER]
+   :   IDENTIFIER
 	;
 
 outer_key
-   :   {validateSoftKeyword("outer")}?=> IDENTIFIER  OUTER[$IDENTIFIER]
+   :   IDENTIFIER
 	;
 
 left_key
-   :   {validateSoftKeyword("left")}?=> IDENTIFIER  LEFT[$IDENTIFIER]
+   :   IDENTIFIER
 	;
 
 right_key
-   :   {validateSoftKeyword("right")}?=> IDENTIFIER  RIGHT[$IDENTIFIER]
+   :   IDENTIFIER
 	;
 
 full_key
-   :   {validateSoftKeyword("full")}?=> IDENTIFIER  FULL[$IDENTIFIER]
+   :   IDENTIFIER
 	;
 
 elements_key
-   :   {validateSoftKeyword("elements")}?=> IDENTIFIER  ELEMENTS[$IDENTIFIER]
+   :   IDENTIFIER
 	;
 
 properties_key
-   :   {validateSoftKeyword("properties")}?=> IDENTIFIER  PROPERTIES[$IDENTIFIER]
+   :   IDENTIFIER
 	;
 
 fetch_key
-   :   {validateSoftKeyword("fetch")}?=> IDENTIFIER  FETCH[$IDENTIFIER]
+   :   IDENTIFIER
 	;
 
 in_key
-   :   {validateSoftKeyword("in")}?=> IDENTIFIER  IN[$IDENTIFIER]
+   :   IDENTIFIER
 	;
 
 as_key
-   :   {validateSoftKeyword("as")}?=> IDENTIFIER  AS[$IDENTIFIER]
+   :   IDENTIFIER
 	;
 
 where_key
-   :   {validateSoftKeyword("where")}?=> IDENTIFIER  WHERE[$IDENTIFIER]
+   :   IDENTIFIER
 	;
 
 select_key
-   :   {validateSoftKeyword("select")}?=> IDENTIFIER  SELECT[$IDENTIFIER]
+   :   IDENTIFIER
 	;
 
 delete_key
-   :   {validateSoftKeyword("delete")}?=> IDENTIFIER  DELETE[$IDENTIFIER]
+   :   IDENTIFIER
    ;
 
 distinct_key
-   :   {validateSoftKeyword("distinct")}?=> IDENTIFIER  DISTINCT[$IDENTIFIER]
+   :   IDENTIFIER
 	;
 
 all_key
-   :   {validateSoftKeyword("all")}?=> IDENTIFIER  ALL[$IDENTIFIER]
+   :   IDENTIFIER
 	;
 
 ascending_key
-   :   {validateSoftKeyword("asc")}?=> IDENTIFIER
+   :   IDENTIFIER
 	;
 
 descending_key
-   :   {validateSoftKeyword("desc")}?=> IDENTIFIER
+   :   IDENTIFIER
 	;
 
 collate_key
-   :   {validateSoftKeyword("collate")}?=> IDENTIFIER
+   :   IDENTIFIER
 	;
 
 order_by_key
-   :   {validateSoftKeyword("order") && validateSoftKeyword(2, "by")}?=> id=IDENTIFIER IDENTIFIER  ORDER_BY[$id]
+   :   id=IDENTIFIER IDENTIFIER
 	;
 
 group_by_key
-   :   {validateSoftKeyword("group") && validateSoftKeyword(2, "by")}?=> id=IDENTIFIER IDENTIFIER  GROUP_BY[$id]
+   :   id=IDENTIFIER IDENTIFIER
 	;
 
 from_key
-   :   {validateSoftKeyword("from")}?=> IDENTIFIER  FROM[$IDENTIFIER]
+   :   IDENTIFIER
 	;
 
 /* TODO [anistor]
@@ -801,12 +796,12 @@ knnExpression
    ;
 
 ftOccurrence
-   :  PLUS  FT_OCCUR_MUST[$PLUS, $PLUS.text]
-   |  MINUS  FT_OCCUR_MUST_NOT[$MINUS, $MINUS.text]
-   |  EXCLAMATION  FT_OCCUR_MUST_NOT[$EXCLAMATION, $EXCLAMATION.text]
-   |  HASH  FT_OCCUR_FILTER[$HASH, $HASH.text]
-   |  not_key  FT_OCCUR_MUST_NOT[$not_key.start, $not_key.text]
-   ;
+    : plus=PLUS
+    | minus=MINUS
+    | excl=EXCLAMATION
+    | hash=HASH
+    | nk=not_key
+    ;
 
 ftFieldPath
    :  dotIdentifierPath  (PATH dotIdentifierPath)
@@ -821,14 +816,14 @@ ftBoostedQuery
    ;
 
 ftBoost
-   :  CARAT ftNumericLiteralOrParameter  CARAT[$CARAT, $ftNumericLiteralOrParameter.text]
-   ;
+    : c1=CARAT val=ftNumericLiteralOrParameter c2=CARAT
+    ;
 
 ftTermOrQuery
-   :  ftTerm
-   |  ftRange
-   |  LPAREN! ftConjunction (ftOr ftConjunction)* RPAREN!
-   ;
+    : ftTerm
+    | ftRange
+    | LPAREN ftConjunction (ftOr ftConjunction)* RPAREN
+    ;
 
 ftTerm
    :  ftLiteralOrParameter ftFuzzySlop?  (FT_TERM ftLiteralOrParameter ftFuzzySlop?)
@@ -840,12 +835,12 @@ knnTerm
    ;
 
 ftFuzzySlop
-   :  TILDE (options { greedy=true; } : ftNumericLiteralOrParameter)?  TILDE[$TILDE, $ftNumericLiteralOrParameter.text]
-   ;
+    : t1=TILDE val=ftNumericLiteralOrParameter? t2=TILDE
+    ;
 
 ftRange
-   :  ftRangeBegin lower=ftRangeBound to_key? upper=ftRangeBound ftRangeEnd  (FT_RANGE ftRangeBegin $lower $upper ftRangeEnd)
-   ;
+    : rb=ftRangeBegin lower=ftRangeBound tk=to_key? upper=ftRangeBound re=ftRangeEnd
+    ;
 
 ftRangeBegin
    :  LSQUARE
@@ -887,8 +882,8 @@ ftNumericLiteralOrParameter
    ;
 
 knnDistance
-   :  TILDE (options { greedy=true; } : ftNumericLiteralOrParameter)?  TILDE[$TILDE, $ftNumericLiteralOrParameter.text]
-   ;
+    : t1=TILDE val=ftNumericLiteralOrParameter? t2=TILDE
+    ;
 
 nakedIdentifier
    :IDENTIFIER

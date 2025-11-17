@@ -218,6 +218,8 @@
             <configuration>
                <sourceDirectory>${basedir}/src/main/antlr4</sourceDirectory>
                <outputDirectory>${project.build.directory}/generated-sources/antlr4</outputDirectory>
+               <visitor>true</visitor>
+               <listener>true</listener>
             </configuration>
          </plugin>
 

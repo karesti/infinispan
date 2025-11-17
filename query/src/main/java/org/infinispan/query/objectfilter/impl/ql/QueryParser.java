@@ -15,22 +15,6 @@
  */
 package org.infinispan.query.objectfilter.impl.ql;
 
-import java.lang.invoke.MethodHandles;
-
-import org.antlr.v4.runtime.ANTLRStringStream;
-import org.antlr.v4.runtime.CommonTokenStream;
-import org.antlr.v4.runtime.RecognitionException;
-import org.antlr.v4.runtime.TokenStream;
-import org.antlr.v4.runtime.tree.ParseTree;
-import org.antlr.v4.runtime.tree.CommonTreeNodeStream;
-import org.infinispan.query.objectfilter.ParsingException;
-import org.infinispan.query.objectfilter.impl.logging.Log;
-import org.infinispan.query.objectfilter.impl.ql.parse.IckleLexer;
-import org.infinispan.query.objectfilter.impl.ql.parse.IckleParser;
-import org.infinispan.query.objectfilter.impl.ql.parse.QueryRenderer;
-import org.infinispan.query.objectfilter.impl.ql.parse.QueryResolver;
-import org.jboss.logging.Logger;
-
 /**
  * A parser for Ickle queries. Parsing comprises these steps:
  * <ul>
@@ -45,48 +29,48 @@ import org.jboss.logging.Logger;
  */
 public final class QueryParser {
 
-   private static final Log log = Logger.getMessageLogger(MethodHandles.lookup(), Log.class, QueryParser.class.getName());
-
-   /**
-    * Parses the given query string.
-    *
-    * @param queryString the query string to parse
-    * @return the result of the parsing after being transformed by the processors
-    * @throws ParsingException in case any exception occurs during parsing
-    */
-   public CommonTree parseQuery(String queryString, QueryResolverDelegate<?> resolverDelegate, QueryRendererDelegate<?> rendererDelegate) throws ParsingException {
-      IckleLexer lexer = new IckleLexer(new ANTLRStringStream(queryString));
-      CommonTokenStream tokens = new CommonTokenStream(lexer);
-      IckleParser parser = new IckleParser(tokens);
-
-      try {
-         // parser.statement() is the entry point for evaluation of any kind of statement
-         IckleParser.statement_return r = parser.statement();
-
-         if (parser.hasErrors()) {
-            throw log.getQuerySyntaxException(queryString, parser.getErrorMessages());
-         }
-
-         CommonTree tree = (CommonTree) r.getTree();
-         tree = resolve(tokens, tree, resolverDelegate);
-         tree = render(tokens, tree, rendererDelegate);
-         return tree;
-      } catch (RecognitionException e) {
-         throw log.getQuerySyntaxException(queryString, e);
-      }
-   }
-
-   // resolves the elements in given source query into an output query, by invoking {@link QueryResolverDelegate} while traversing the given query tree
-   private CommonTree resolve(TokenStream tokens, CommonTree tree, QueryResolverDelegate<?> resolverDelegate) throws RecognitionException {
-      CommonTreeNodeStream treeNodeStream = new CommonTreeNodeStream(tree);
-      treeNodeStream.setTokenStream(tokens);
-      return new QueryResolver(treeNodeStream, resolverDelegate).statement().getTree();
-   }
-
-   // render a given source query into an output query, by invoking {@link QueryRendererDelegate} while traversing the given query tree
-   private CommonTree render(TokenStream tokens, CommonTree tree, QueryRendererDelegate<?> rendererDelegate) throws RecognitionException {
-      CommonTreeNodeStream treeNodeStream = new CommonTreeNodeStream(tree);
-      treeNodeStream.setTokenStream(tokens);
-      return new QueryRenderer(treeNodeStream, rendererDelegate).statement().getTree();
-   }
+//   private static final Log log = Logger.getMessageLogger(MethodHandles.lookup(), Log.class, QueryParser.class.getName());
+//
+//   /**
+//    * Parses the given query string.
+//    *
+//    * @param queryString the query string to parse
+//    * @return the result of the parsing after being transformed by the processors
+//    * @throws ParsingException in case any exception occurs during parsing
+//    */
+//   public CommonTree parseQuery(String queryString, QueryResolverDelegate<?> resolverDelegate, QueryRendererDelegate<?> rendererDelegate) throws ParsingException {
+//      IckleLexer lexer = new IckleLexer(new ANTLRStringStream(queryString));
+//      CommonTokenStream tokens = new CommonTokenStream(lexer);
+//      IckleParser parser = new IckleParser(tokens);
+//
+//      try {
+//         // parser.statement() is the entry point for evaluation of any kind of statement
+//         IckleParser.statement_return r = parser.statement();
+//
+//         if (parser.hasErrors()) {
+//            throw log.getQuerySyntaxException(queryString, parser.getErrorMessages());
+//         }
+//
+//         CommonTree tree = (CommonTree) r.getTree();
+//         tree = resolve(tokens, tree, resolverDelegate);
+//         tree = render(tokens, tree, rendererDelegate);
+//         return tree;
+//      } catch (RecognitionException e) {
+//         throw log.getQuerySyntaxException(queryString, e);
+//      }
+//   }
+//
+//   // resolves the elements in given source query into an output query, by invoking {@link QueryResolverDelegate} while traversing the given query tree
+//   private CommonTree resolve(TokenStream tokens, CommonTree tree, QueryResolverDelegate<?> resolverDelegate) throws RecognitionException {
+//      CommonTreeNodeStream treeNodeStream = new CommonTreeNodeStream(tree);
+//      treeNodeStream.setTokenStream(tokens);
+//      return new QueryResolver(treeNodeStream, resolverDelegate).statement().getTree();
+//   }
+//
+//   // render a given source query into an output query, by invoking {@link QueryRendererDelegate} while traversing the given query tree
+//   private CommonTree render(TokenStream tokens, CommonTree tree, QueryRendererDelegate<?> rendererDelegate) throws RecognitionException {
+//      CommonTreeNodeStream treeNodeStream = new CommonTreeNodeStream(tree);
+//      treeNodeStream.setTokenStream(tokens);
+//      return new QueryRenderer(treeNodeStream, rendererDelegate).statement().getTree();
+//   }
 }
